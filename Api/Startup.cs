@@ -31,7 +31,7 @@ namespace MODB.Api
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers(opt => {
-                // opt.Filters.Add(new ResponseCacheAttribute { NoStore = true, Location = ResponseCacheLocation.None });
+                opt.Filters.Add(new ResponseCacheAttribute { NoStore = true, Location = ResponseCacheLocation.None });
                 opt.ModelBinderProviders.Insert(0, new CommaSeparatedArrayModelBinderProvider());
                 opt.InputFormatters.Insert(0, new RawRequestBodyFormatter());
             });
