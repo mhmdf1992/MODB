@@ -16,7 +16,7 @@ namespace MODB.FlatFileDB{
         PagedList<string> Get(IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null, bool? orderByKeyAsc = null, bool? orderByKeyDesc = null, bool? orderByTimeStampAsc = null, bool? orderByTimeStampDesc = null, int page = 1, int pageSize = 10);
         PagedList<MODBRecord> GetDetailed(IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null, bool? orderByKeyAsc = null, bool? orderByKeyDesc = null, bool? orderByTimeStampAsc = null, bool? orderByTimeStampDesc = null, int page = 1, int pageSize = 10);
         PagedList<string> GetByKeyRegexPattern(string keyRegexPattern, int page = 1, int pageSize = 10);
-        PagedList<string> GetTags(int page = 1, int pageSize = 10);
+        PagedList<string> GetTags(bool? orderAsc = null, bool? orderDesc = null, int page = 1, int pageSize = 10);
         PagedList<string> GetKeys(int page = 1, int pageSize = 10);
         string Name {get;}
         long Size {get;}

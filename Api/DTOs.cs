@@ -29,6 +29,11 @@ namespace MODB.Api.DTOs{
         public int PageSize {get; set;} = 10;
     }
 
+    public class GetTagsPagedListQueryParams : GetPagedListQueryParams{
+        public bool? OrderAsc {get; set;}
+        public bool? OrderDesc {get; set;}
+    }
+
     public class GetFilteredPagedListQueryParams : GetPagedListQueryParams{
         public IEnumerable<string> Tags {get; set;}
         public long? From {get; set;}

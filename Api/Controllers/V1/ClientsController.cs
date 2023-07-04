@@ -127,5 +127,25 @@ namespace MODB.Api.Controllers.V1
                 throw new Exceptions.ApplicationErrorException((int)System.Net.HttpStatusCode.NotFound, System.Net.HttpStatusCode.NotFound.ToString(), ex.Message);
             }
         }
+
+        [HttpGet("Tags")]
+        [ProducesResponseType(typeof(PagedList<string>), 200)]
+        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ValidationError), 400)]
+        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 404)]
+        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
+        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 500)]
+        public async Task<IActionResult> GetTagsAsync([FromQuery] GetTagsPagedListQueryParams obj){
+            Request.Headers.TryGetValue("ApiKey", out var apikey);
+            try{
+                var res = Utilities.StopWatch(() => _clientsDB.GetTags(obj.OrderAsc, obj.OrderDesc, obj.Page, obj.PageSize));
+                Response.Headers.Add("processing-time", res.ProcessingTime);
+                return await Task.FromResult(Ok(res.Result));
+            }catch(ArgumentException ex){
+                throw new Exceptions.ApplicationValidationErrorException(ex, HttpContext.TraceIdentifier);
+            }
+            catch(Exceptions.KeyNotFoundException ex){
+                throw new Exceptions.ApplicationErrorException((int)System.Net.HttpStatusCode.NotFound, System.Net.HttpStatusCode.NotFound.ToString(), ex.Message);
+            }
+        }
     }
 }

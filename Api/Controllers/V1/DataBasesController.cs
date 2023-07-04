@@ -294,14 +294,14 @@ namespace MODB.Api.Controllers.V1
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 404)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 500)]
-        public async Task<IActionResult> GetTagsAsync([FromRoute] string db, [FromQuery] GetPagedListQueryParams obj){
+        public async Task<IActionResult> GetTagsAsync([FromRoute] string db, [FromQuery] GetTagsPagedListQueryParams obj){
             Request.Headers.TryGetValue("ApiKey", out var apikey);
             try{
                 var res = Utilities.StopWatch(() => {
                         var clientDBs = _dbs[apikey];
                         if(!clientDBs.ContainsKey(db))
                             throw new Exceptions.KeyNotFoundException(db);
-                        return _dbs[apikey][db].GetTags(obj.Page, obj.PageSize);
+                        return _dbs[apikey][db].GetTags(obj.OrderAsc, obj.OrderDesc, obj.Page, obj.PageSize);
                     });
                 Response.Headers.Add("processing-time", res.ProcessingTime);
                 return await Task.FromResult(Ok(res.Result));

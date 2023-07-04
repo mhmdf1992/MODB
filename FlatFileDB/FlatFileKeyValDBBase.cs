@@ -9,14 +9,12 @@ namespace MODB.FlatFileDB{
     public class FlatFileKeyValDBBase{
         protected string _path;
         protected string _flatFilePath;
-        protected string _tagsFilePath;
         protected IFileWR _flatFileWR;
-        protected IFileWR _tagsFileWR; 
         protected List<IFileWR> _manFileWRs;
         protected int _numberOfManFiles;
         protected string _name;
         public string Name => _name;
-        public long Size => _flatFileWR.Size + _manFileWRs.Sum(x => x.Size) + _tagsFileWR.Size;
+        public long Size => _flatFileWR.Size + _manFileWRs.Sum(x => x.Size);
         public FlatFileKeyValDBBase(string path, int numberOfManifestFiles = 10){
             _path = path;
             _numberOfManFiles = numberOfManifestFiles;
@@ -24,9 +22,7 @@ namespace MODB.FlatFileDB{
                 var name = Path.GetFileName(_path);
                 _name = name;
                 var _flatFilePath = Path.Combine(path, $"{name}.dat");
-                var _tagsFilePath = Path.Combine(path, $"{name}.tag");
                 _flatFileWR = new ConcurrentFileWR(_flatFilePath);
-                _tagsFileWR = new ConcurrentFileWR(_tagsFilePath);
                 _manFileWRs = new List<IFileWR>();
                 LoadManifests();
             }catch{throw;}
@@ -122,22 +118,21 @@ namespace MODB.FlatFileDB{
                 });
                 return new Tuple<IEnumerable<ManifestItem>, IFileWR>(csvRecords, manFileWR);
             });
-
-        protected Task<Tuple<IEnumerable<string>, int, IFileWR>> FindManifestCsvRecordsByTags(IEnumerable<string> tags, IFileWR manFileWR) => Task.Run(() => {
-                var csvRecords = new List<string>();
+        
+        protected Task<Tuple<IEnumerable<string>, IFileWR>> FindManifestCsvRecordsTags(IFileWR manFileWR) => Task.Run(() => {
+                var tags = new List<string>();
                 manFileWR.ReadStream(x => {
                     x.Position = 0;
                     using(var reader = new StreamReader(x)){
                         while(!reader.EndOfStream){
-                            var line = reader.ReadLine();
-                            var tagsString = line.Split(',')[4];
-                            var tagsList = tagsString.Split(' ');
-                            if(tagsList.Any(x => tags.Any(y => y == x)))
-                                csvRecords.Add(line);
+                            var tagsString = reader.ReadLine().Split(',')[4];
+                            if(!string.IsNullOrEmpty(tagsString)){
+                                tags.AddRange(tagsString.Split(' '));
+                            }
                         }
                     }
                 });
-                return new Tuple<IEnumerable<string>, int, IFileWR>(csvRecords, csvRecords.Count, manFileWR);
+                return new Tuple<IEnumerable<string>, IFileWR>(tags, manFileWR);
             });
 
         protected Task<Tuple<IEnumerable<string>, int, IFileWR>> FindManifestCsvRecordsByKeyPattern(string keyRegexPattern, IFileWR manFileWR) => Task.Run(() => {
@@ -192,23 +187,6 @@ namespace MODB.FlatFileDB{
                 return new Tuple<IEnumerable<string>,IFileWR>(csvRecords, manFileWR);
             });
 
-        protected Task<Tuple<IEnumerable<string>, int, IFileWR>> FindManifestCsvRecordsByDateRange(long from, long to, IFileWR manFileWR) => Task.Run(() => {
-                var csvRecords = new List<string>();
-                manFileWR.ReadStream(x => {
-                    x.Position = 0;
-                    using(var reader = new StreamReader(x)){
-                        while(!reader.EndOfStream){
-                            var line = reader.ReadLine();
-                            var timeStampString = line.Split(',')[3];
-                            var timeStamp = Helper.ConvertToLong(timeStampString.ToArray());
-                            if(timeStamp > from && timeStamp < to)
-                                csvRecords.Add(reader.ReadLine());
-                        }
-                    }
-                });
-                return new Tuple<IEnumerable<string>, int, IFileWR>(csvRecords, csvRecords.Count, manFileWR);
-            });
-
 
         protected void ManifestRewriteRemoveKey(string key, IFileWR manFileWR){
             var resultText = System.Text.RegularExpressions.Regex.Replace(manFileWR.Read(), $"^{key},([0-9]+),([0-9]+),.*\n", string.Empty, System.Text.RegularExpressions.RegexOptions.Multiline);
@@ -220,36 +198,6 @@ namespace MODB.FlatFileDB{
             var resultText = System.Text.RegularExpressions.Regex.Replace(manFileWR.Read(), $"^{key},([0-9]+),([0-9]+),.*\n", newManItem.ToCsv(), System.Text.RegularExpressions.RegexOptions.Multiline);
             manFileWR.Clear();
             manFileWR.Write(resultText);
-        }
-
-        protected void TagsRemoveTags(IEnumerable<string> tags){
-            if(tags == null || !tags.Any())
-                return;
-            var findTagPattern = tags.Select(x => $"{x},|{x}$");
-            var resultText = System.Text.RegularExpressions.Regex.Replace(_tagsFileWR.Read(), $"({string.Join('|', findTagPattern)})", string.Empty, System.Text.RegularExpressions.RegexOptions.Multiline);
-            _tagsFileWR.Clear();
-            _tagsFileWR.Write(resultText);
-        }
-
-        protected void TagsAddTags(IEnumerable<string> tags){
-            if(tags == null || !tags.Any())
-                return;
-            var exists = new List<string>();
-            _tagsFileWR.ReadStream(x => {
-                x.Position = 0;
-                using(var reader = new StreamReader(x)){
-                    while(!reader.EndOfStream){
-                        var tagsList = reader.ReadLine().Split(',');
-                        var common = tagsList.Intersect(tags);
-                        if(common == null || !common.Any())
-                            continue;
-                        exists.AddRange(common);
-                    }
-                }
-            });
-            var tagsToWrite = tags.Except(exists);
-            if(tagsToWrite != null && tagsToWrite.Any())
-                _tagsFileWR.WriteAtEnd($"{(_tagsFileWR.FileInfo.Length > 0 ? "," : "")}{string.Join(',', tagsToWrite)}");
         }
     }
 }

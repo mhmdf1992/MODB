@@ -40,8 +40,6 @@ namespace MODB.FlatFileDB{
             var noTags = tags == null || !tags.Any();
             var manifestItem = new ManifestItem(key, position, val.Length, timeStamp ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds(), noTags ? "" : string.Join(' ', tags));
             GetManifestWR().WriteAtEnd(manifestItem.ToCsv());
-            if(!noTags)
-                TagsAddTags(tags);
         }
 
         public void Insert(string key, Stream stream, IEnumerable<string> tags = null, long? timeStamp = null){
@@ -51,8 +49,6 @@ namespace MODB.FlatFileDB{
             var noTags = tags == null || !tags.Any();
             var manifestItem = new ManifestItem(key, position, (int)stream.Length, timeStamp ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds(), noTags ? "" : string.Join(' ', tags));
             GetManifestWR().WriteAtEndStream(manifestItem.ToCsvStream());
-            if(!noTags)
-                TagsAddTags(tags);
         }
 
         public void Update(ManifestItemMin manifestItem, IFileWR manFileWR, string key, string val, IEnumerable<string> tags = null, long? timeStamp = null){
@@ -62,8 +58,6 @@ namespace MODB.FlatFileDB{
             var noTags = tags == null || !tags.Any();
             var newManifestItem = new ManifestItem(key, position, val.Length, timeStamp ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds(), noTags ? "" : string.Join(' ', tags));
             ManifestRewriteUpdateKey(key, newManifestItem, manFileWR);
-            if(!noTags)
-                TagsAddTags(tags);
         }
 
         public void Update(ManifestItemMin manifestItem, IFileWR manFileWR, string key, Stream stream, IEnumerable<string> tags = null, long ? timeStamp = null){
@@ -73,8 +67,6 @@ namespace MODB.FlatFileDB{
             var noTags = tags == null || !tags.Any();
             var newManifestItem = new ManifestItem(key, position, (int)stream.Length, timeStamp ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds(), noTags ? "" : string.Join(' ', tags));
             ManifestRewriteUpdateKey(key, newManifestItem, manFileWR);
-            if(!noTags)
-                TagsAddTags(tags);
         }
 
         public void Set(string key, string val, IEnumerable<string> tags = null, long? timeStamp = null){
@@ -95,17 +87,29 @@ namespace MODB.FlatFileDB{
             Insert(key, stream, tags, timeStamp);
         }
 
-        public PagedList<string> GetTags(int page = 1, int pageSize = 10){
-            var res = new List<string>();
-            _tagsFileWR.ReadStream(x => {
-                    x.Position = 0;
-                    using(var reader = new StreamReader(x)){
-                        while(!reader.EndOfStream){
-                            res.AddRange(reader.ReadLine().Split(','));
-                        }
-                    }
-                });
-            return res.ToPagedList(page, pageSize);
+        public PagedList<string> GetTags(bool? orderAsc = null, bool? orderDesc = null, int page = 1, int pageSize = 10){
+            var res = Task.WhenAll(_manFileWRs.Select( x => Task.Run(() => FindManifestCsvRecordsTags(x)))).Result;
+            if(res == null || !res.Any())
+                Enumerable.Empty<string>().ToPagedList(page, pageSize);
+            if(orderAsc == true)
+                return res.SelectMany(x => x.Item1)
+                    .Distinct()
+                    .OrderBy(x => x)
+                    .Skip((page * pageSize) - pageSize)
+                    .Take(pageSize)
+                    .ToPagedList(page, pageSize, res.Sum(x => x.Item1.Count()));
+            if(orderDesc == true)
+                return res.SelectMany(x => x.Item1)
+                    .Distinct()
+                    .OrderByDescending(x => x)
+                    .Skip((page * pageSize) - pageSize)
+                    .Take(pageSize)
+                    .ToPagedList(page, pageSize, res.Sum(x => x.Item1.Count()));
+            return res.SelectMany(x => x.Item1)
+                .Distinct()
+                .Skip((page * pageSize) - pageSize)
+                .Take(pageSize)
+                .ToPagedList(page, pageSize, res.Sum(x => x.Item1.Count()));
         }
 
         public PagedList<string> GetByKeyRegexPattern(string keyRegexPattern, int page = 1, int pageSize = 10){
