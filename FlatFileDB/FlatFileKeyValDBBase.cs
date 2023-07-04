@@ -94,66 +94,65 @@ namespace MODB.FlatFileDB{
                 return new Tuple<ManifestItem?,IFileWR>(manifestItem, manFileWR);
             }
 
-        protected Task<Tuple<IEnumerable<ManifestItem>, IFileWR>> FilterManifestCsvRecords(IFileWR manFileWR, IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null) => Task.Run(() => {
-                
-                var csvRecords = new List<ManifestItem>();
-                manFileWR.ReadStream(x => {
-                    x.Position = 0;
-                    using(var reader = new StreamReader(x)){
-                        while(!reader.EndOfStream){
-                            var lineParams = reader.ReadLine().Split(',');
-                            var key = lineParams[0];
-                            var positionString = lineParams[1];
-                            var position = Helper.ConvertToLong(positionString.ToArray());
-                            var lengthString = lineParams[2];
-                            var length = Helper.ConvertToInt(lengthString.ToArray());
-                            var timeStampString = lineParams[3];
-                            var timeStamp = Helper.ConvertToLong(timeStampString.ToArray());
-                            var tagsString = lineParams[4];
-                            var tagsList = tagsString.Split(' ');
-                            if(((tags == null || !tags.Any()) || tagsList.Any(x => tags.Any(y => y == x))) && (timeStampFrom == null || timeStamp >= timeStampFrom) && (timeStampTo == null || timeStamp <= timeStampTo))
-                                csvRecords.Add(new ManifestItem(key, position, length, timeStamp, tagsString) );
-                        }
+        protected Tuple<IEnumerable<ManifestItem>, IFileWR> FilterManifestCsvRecords(IFileWR manFileWR, IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null){    
+            var csvRecords = new List<ManifestItem>();
+            manFileWR.ReadStream(x => {
+                x.Position = 0;
+                using(var reader = new StreamReader(x)){
+                    while(!reader.EndOfStream){
+                        var lineParams = reader.ReadLine().Split(',');
+                        var key = lineParams[0];
+                        var positionString = lineParams[1];
+                        var position = Helper.ConvertToLong(positionString.ToArray());
+                        var lengthString = lineParams[2];
+                        var length = Helper.ConvertToInt(lengthString.ToArray());
+                        var timeStampString = lineParams[3];
+                        var timeStamp = Helper.ConvertToLong(timeStampString.ToArray());
+                        var tagsString = lineParams[4];
+                        var tagsList = tagsString.Split(' ');
+                        if(((tags == null || !tags.Any()) || tagsList.Any(x => tags.Any(y => y == x))) && (timeStampFrom == null || timeStamp >= timeStampFrom) && (timeStampTo == null || timeStamp <= timeStampTo))
+                            csvRecords.Add(new ManifestItem(key, position, length, timeStamp, tagsString) );
                     }
-                });
-                return new Tuple<IEnumerable<ManifestItem>, IFileWR>(csvRecords, manFileWR);
+                }
             });
+            return new Tuple<IEnumerable<ManifestItem>, IFileWR>(csvRecords, manFileWR);
+        }
         
-        protected Task<Tuple<IEnumerable<string>, IFileWR>> FindManifestCsvRecordsTags(IFileWR manFileWR) => Task.Run(() => {
-                var tags = new List<string>();
-                manFileWR.ReadStream(x => {
-                    x.Position = 0;
-                    using(var reader = new StreamReader(x)){
-                        while(!reader.EndOfStream){
-                            var tagsString = reader.ReadLine().Split(',')[4];
-                            if(!string.IsNullOrEmpty(tagsString)){
-                                tags.AddRange(tagsString.Split(' '));
-                            }
+        protected Tuple<IEnumerable<string>, IFileWR> FindManifestCsvRecordsTags(IFileWR manFileWR){
+            var tags = new List<string>();
+            manFileWR.ReadStream(x => {
+                x.Position = 0;
+                using(var reader = new StreamReader(x)){
+                    while(!reader.EndOfStream){
+                        var tagsString = reader.ReadLine().Split(',')[4];
+                        if(!string.IsNullOrEmpty(tagsString)){
+                            tags.AddRange(tagsString.Split(' '));
                         }
                     }
-                });
-                return new Tuple<IEnumerable<string>, IFileWR>(tags, manFileWR);
+                }
             });
+            return new Tuple<IEnumerable<string>, IFileWR>(tags, manFileWR);
+        }
 
-        protected Task<Tuple<IEnumerable<string>, int, IFileWR>> FindManifestCsvRecordsByKeyPattern(string keyRegexPattern, IFileWR manFileWR) => Task.Run(() => {
-                var csvRecords = new List<string>();
-                manFileWR.ReadStream(x => {
-                    x.Position = 0;
-                    using(var reader = new StreamReader(x)){
-                        while(!reader.EndOfStream){
-                            var line = reader.ReadLine();
-                            var key = line.Split(',')[0];
-                            if(System.Text.RegularExpressions.Regex.IsMatch(key, keyRegexPattern))
-                                csvRecords.Add(line);
-                        }
+        protected Tuple<IEnumerable<string>, int, IFileWR> FindManifestCsvRecordsByKeyPattern(string keyRegexPattern, IFileWR manFileWR){
+            var csvRecords = new List<string>();
+            manFileWR.ReadStream(x => {
+                x.Position = 0;
+                using(var reader = new StreamReader(x)){
+                    while(!reader.EndOfStream){
+                        var line = reader.ReadLine();
+                        var key = line.Split(',')[0];
+                        if(System.Text.RegularExpressions.Regex.IsMatch(key, keyRegexPattern))
+                            csvRecords.Add(line);
                     }
-                });
-                return new Tuple<IEnumerable<string>, int, IFileWR>(csvRecords, csvRecords.Count, manFileWR);
+                }
             });
+            return new Tuple<IEnumerable<string>, int, IFileWR>(csvRecords, csvRecords.Count, manFileWR);
+        }
         protected bool ManifestContainsItem(string key, out ManifestItemMin manifestItem, out IFileWR manFileWR){
             manifestItem = default;
             manFileWR = default;
-            var res = Task.WhenAll(_manFileWRs.Select((x) => Task.Run(() => FindManifestMinCsvRecord(key, x, new System.Threading.CancellationTokenSource())))).Result;
+            var res = Task.WhenAll(_manFileWRs.Select((x) => Task.Run(() => FindManifestMinCsvRecord(key, x, new System.Threading.CancellationTokenSource()), new System.Threading.CancellationTokenSource(5000).Token))).Result;
             if(!res.Any(x => x.Item1 != null))
                 return false;
             var resTuple = res.First(x => x.Item1 != null);
@@ -165,7 +164,7 @@ namespace MODB.FlatFileDB{
         protected bool ManifestContainsItem(string key, out ManifestItem manifestItem, out IFileWR manFileWR){
             manifestItem = default;
             manFileWR = default;
-            var res = Task.WhenAll(_manFileWRs.Select((x) => Task.Run(() => FindManifestCsvRecord(key, x, new System.Threading.CancellationTokenSource())))).Result;
+            var res = Task.WhenAll(_manFileWRs.Select((x) => Task.Run(() => FindManifestCsvRecord(key, x, new System.Threading.CancellationTokenSource()), new System.Threading.CancellationTokenSource(5000).Token))).Result;
             if(!res.Any(x => x.Item1 != null))
                 return false;
             var resTuple = res.First(x => x.Item1 != null);
@@ -174,18 +173,18 @@ namespace MODB.FlatFileDB{
             return true;
         }
 
-        protected Task<Tuple<IEnumerable<string>, IFileWR>> FindManifestCsvRecordsAll(IFileWR manFileWR) => Task.Run(() => {
-                var csvRecords = new List<string>();
-                manFileWR.ReadStream(x => {
-                    x.Position = 0;
-                    using(var reader = new StreamReader(x)){
-                        while(!reader.EndOfStream){
-                            csvRecords.Add(reader.ReadLine());
-                        }
+        protected Tuple<IEnumerable<string>, IFileWR> FindManifestCsvRecordsAll(IFileWR manFileWR){
+            var csvRecords = new List<string>();
+            manFileWR.ReadStream(x => {
+                x.Position = 0;
+                using(var reader = new StreamReader(x)){
+                    while(!reader.EndOfStream){
+                        csvRecords.Add(reader.ReadLine());
                     }
-                });
-                return new Tuple<IEnumerable<string>,IFileWR>(csvRecords, manFileWR);
+                }
             });
+            return new Tuple<IEnumerable<string>,IFileWR>(csvRecords, manFileWR);
+        }
 
 
         protected void ManifestRewriteRemoveKey(string key, IFileWR manFileWR){

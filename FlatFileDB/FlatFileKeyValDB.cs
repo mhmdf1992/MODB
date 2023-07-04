@@ -88,7 +88,7 @@ namespace MODB.FlatFileDB{
         }
 
         public PagedList<string> GetTags(bool? orderAsc = null, bool? orderDesc = null, int page = 1, int pageSize = 10){
-            var res = Task.WhenAll(_manFileWRs.Select( x => Task.Run(() => FindManifestCsvRecordsTags(x)))).Result;
+            var res = Task.WhenAll(_manFileWRs.Select( x => Task.Run(() => FindManifestCsvRecordsTags(x), new System.Threading.CancellationTokenSource(5000).Token))).Result;
             if(res == null || !res.Any())
                 Enumerable.Empty<string>().ToPagedList(page, pageSize);
             if(orderAsc == true)
@@ -113,7 +113,7 @@ namespace MODB.FlatFileDB{
         }
 
         public PagedList<string> GetByKeyRegexPattern(string keyRegexPattern, int page = 1, int pageSize = 10){
-            var res = Task.WhenAll(_manFileWRs.Select( x => Task.Run(() => FindManifestCsvRecordsByKeyPattern(keyRegexPattern, x)))).Result;
+            var res = Task.WhenAll(_manFileWRs.Select( x => Task.Run(() => FindManifestCsvRecordsByKeyPattern(keyRegexPattern, x), new System.Threading.CancellationTokenSource(5000).Token))).Result;
             if(res == null || !res.Any())
                 return Enumerable.Empty<string>().ToPagedList(page, pageSize);
             return res.SelectMany(x => x.Item1)
@@ -129,7 +129,7 @@ namespace MODB.FlatFileDB{
         public bool Exists(string key) => Validator.ValidateKey(key) ? ManifestContainsItem(key, out ManifestItemMin manifestItem, out IFileWR manFileWR) : false;
 
         public PagedList<string> GetKeys(int page = 1, int pageSize = 10){
-            var res = Task.WhenAll(_manFileWRs.Select( x => Task.Run(() => FindManifestCsvRecordsAll(x)))).Result;
+            var res = Task.WhenAll(_manFileWRs.Select( x => Task.Run(() => FindManifestCsvRecordsAll(x), new System.Threading.CancellationTokenSource(5000).Token))).Result;
             if(res == null || !res.Any())
                 return Enumerable.Empty<string>().ToPagedList(page, pageSize);
             return res.SelectMany(x => x.Item1)
@@ -142,7 +142,7 @@ namespace MODB.FlatFileDB{
         }
 
         public PagedList<string> Get(IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null, bool? orderByKeyAsc = null, bool? orderByKeyDesc = null, bool? orderByTimeStampAsc = null, bool? orderByTimeStampDesc = null, int page = 1, int pageSize = 10){
-            var res = Task.WhenAll(_manFileWRs.Select( x => Task.Run(() => FilterManifestCsvRecords(x, tags, timeStampFrom, timeStampTo)))).Result;
+            var res = Task.WhenAll(_manFileWRs.Select( x => Task.Run(() => FilterManifestCsvRecords(x, tags, timeStampFrom, timeStampTo), new System.Threading.CancellationTokenSource(5000).Token))).Result;
             if(res == null || !res.Any())
                 Enumerable.Empty<string>().ToPagedList(page, pageSize);
             if(orderByKeyAsc == true)
@@ -182,7 +182,7 @@ namespace MODB.FlatFileDB{
         }
 
         public PagedList<MODBRecord> GetDetailed(IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null, bool? orderByKeyAsc = null, bool? orderByKeyDesc = null, bool? orderByTimeStampAsc = null, bool? orderByTimeStampDesc = null, int page = 1, int pageSize = 10){
-            var res = Task.WhenAll(_manFileWRs.Select( x => Task.Run(() => FilterManifestCsvRecords(x, tags, timeStampFrom, timeStampTo)))).Result;
+            var res = Task.WhenAll(_manFileWRs.Select( x => Task.Run(() => FilterManifestCsvRecords(x, tags, timeStampFrom, timeStampTo), new System.Threading.CancellationTokenSource(5000).Token))).Result;
             if(res == null || !res.Any())
                 Enumerable.Empty<MODBRecord>().ToPagedList(page, pageSize);
             if(orderByKeyAsc == true)
