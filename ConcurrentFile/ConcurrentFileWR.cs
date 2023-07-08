@@ -33,7 +33,6 @@ namespace MODB.ConcurrentFile{
             {
                 using(FileStream stream = File.Open(_path, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite))
                 {
-                    stream.Close();
                 }
             }
             catch (IOException)
@@ -49,7 +48,6 @@ namespace MODB.ConcurrentFile{
             {
                 using(FileStream stream = File.Open(_path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read))
                 {
-                    stream.Close();
                 }
             }
             catch (IOException)
@@ -88,17 +86,20 @@ namespace MODB.ConcurrentFile{
                 Thread.Sleep(10);
             }
             try{
-                Stream resStream = new MemoryStream();
                 using (Stream stream = new FileStream(_path, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite)){
                     if(stream.Length < startPosition + (length ?? 0))
                         throw new Exception("File length is less than requested length");
                     if(stream.Length == 0){
-                        action(resStream);
+                        using(var resStream = new MemoryStream()){
+                            action(resStream);
+                        }
                         return;
                     }
                     stream.Seek(startPosition, SeekOrigin.Begin);
-                    CopyStream(stream, resStream, length ?? (int)(stream.Length - startPosition));
-                    action(resStream);
+                    using(var resStream = new MemoryStream()){
+                        CopyStream(stream, resStream, length ?? (int)(stream.Length - startPosition));
+                        action(resStream);
+                    }
                 }
             }catch{
                 throw;
