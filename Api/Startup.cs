@@ -1,13 +1,9 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -67,7 +63,7 @@ namespace MODB.Api
                 new FlatFileKeyValDB(path: Path.Combine(opt.GetRequiredService<Settings>().Path.Concat<string>(new string[]{"clients_db"}).ToArray())));
             services.AddSingleton<ConcurrentDictionary<string, ConcurrentDictionary<string, FlatFileKeyValDB>>>(opt => {
                 var clientsDB = opt.GetRequiredService<IKeyValDB>();
-                var keys = clientsDB.GetKeys(pageSize: int.MaxValue).Items;
+                var keys = clientsDB.GetKeys(page: 1, pageSize: int.MaxValue).Items;
                 var allDBs = new ConcurrentDictionary<string, ConcurrentDictionary<string, FlatFileKeyValDB>>();
                 foreach(var key in keys){
                     var clientPath = Path.Combine(opt.GetRequiredService<Settings>().Path.Concat<string>(new string[]{key}).ToArray());
@@ -79,6 +75,7 @@ namespace MODB.Api
                         .Select(path => new FlatFileKeyValDB(path: path)).ToDictionary(x => x.Name, x => x);
                     allDBs.TryAdd(key, new ConcurrentDictionary<string, FlatFileKeyValDB>(dbs));
                 }
+                // BulkInsert(allDBs, "client", "test_db", 10000000);
                 return allDBs;
             });
         }
@@ -103,6 +100,22 @@ namespace MODB.Api
             {
                 endpoints.MapControllers();
             });
+        }
+
+        void BulkInsert(ConcurrentDictionary<string, ConcurrentDictionary<string, FlatFileKeyValDB>> allDBs, string client, string db, int records){
+            var list = new System.Collections.Generic.List<InsertObject>();
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            Random random = new Random();
+            for(int i = 1; i <= records; i ++){
+                list.Add(new InsertObject(){
+                    Key = i.ToString(),
+                    Value = new string(Enumerable.Repeat(chars, 64).Select(s => s[random.Next(s.Length)]).ToArray()),
+                    Tags = new System.Collections.Generic.List<string>(){
+                        new string(Enumerable.Repeat(chars, 4).Select(s => s[random.Next(s.Length)]).ToArray()),
+                        new string(Enumerable.Repeat(chars, 4).Select(s => s[random.Next(s.Length)]).ToArray())}
+                });
+            }
+            allDBs[client][db].Insert(list.ToArray());
         }
     }
 }

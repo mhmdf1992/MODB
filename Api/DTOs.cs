@@ -14,30 +14,39 @@ namespace MODB.Api.DTOs{
     public class DBInformation{
         public string Name {get; set;}
         public long Size {get; set;}
+        public int Manifests {get; set;}
     }
 
     public class CreateDBQueryParams{
         [Required(AllowEmptyStrings = false)] public string Name {get; set;} 
+        public int? Manifests {get; set;}
     }
     public class SetKeyQueryParams{
         [Required(AllowEmptyStrings = false)] public string Key {get; set;}
         public IEnumerable<string> Tags {get; set;}
         public long? TimeStamp {get; set;}
     }
-    public class GetPagedListQueryParams{
+    public class GetQueryParams{
         public int Page {get; set;} = 1;
         public int PageSize {get; set;} = 10;
     }
 
-    public class GetTagsPagedListQueryParams : GetPagedListQueryParams{
+    public class GetTagsFilteredQueryParams : GetQueryParams{
+        public string Text {get; set;}
+    }
+
+    public class GetTagsOrderedQueryParams : GetTagsFilteredQueryParams{
         public bool? OrderAsc {get; set;}
         public bool? OrderDesc {get; set;}
     }
 
-    public class GetFilteredPagedListQueryParams : GetPagedListQueryParams{
+    public class GetFilteredQueryParams : GetQueryParams{
         public IEnumerable<string> Tags {get; set;}
         public long? From {get; set;}
         public long? To {get; set;}
+    }
+
+    public class GetOrderedQueryParams : GetFilteredQueryParams{
         public bool? OrderByKeyAsc {get; set;}
         public bool? OrderByKeyDesc {get; set;}
         public bool? OrderByTimeStampAsc {get; set;}

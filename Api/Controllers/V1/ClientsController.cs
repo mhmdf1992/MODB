@@ -30,22 +30,11 @@ namespace MODB.Api.Controllers.V1
         [ProducesResponseType(typeof(PagedList<string>), 200)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 500)]
-        public async Task<IActionResult> GetClientsAsync([FromQuery] GetFilteredPagedListQueryParams obj){
-            var res = Utilities.StopWatch(() => _clientsDB.Get(obj.Tags, obj.From, obj.To, obj.OrderByKeyAsc, obj.OrderByKeyDesc, obj.OrderByTimeStampAsc, obj.OrderByTimeStampDesc, obj.Page, obj.PageSize));
+        public async Task<IActionResult> GetClientsOrderedAsync([FromQuery] GetOrderedQueryParams obj){
+            var res = Utilities.StopWatch(() => _clientsDB.GetOrdered(obj.Tags, obj.From, obj.To, obj.OrderByKeyAsc, obj.OrderByKeyDesc, obj.OrderByTimeStampAsc, obj.OrderByTimeStampDesc, obj.Page, obj.PageSize));
             Response.Headers.Add("processing-time", res.ProcessingTime);
             return await Task.FromResult(Ok(res.Result));
-        }
-
-        [HttpGet("Detailed")]
-        [ProducesResponseType(typeof(PagedList<MODBRecord>), 200)]
-        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
-        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 500)]
-        public async Task<IActionResult> GetClientsDetailedAsync([FromQuery] GetFilteredPagedListQueryParams obj){
-            var res = Utilities.StopWatch(() => _clientsDB.GetDetailed(obj.Tags, obj.From, obj.To, obj.OrderByKeyAsc, obj.OrderByKeyDesc, obj.OrderByTimeStampAsc, obj.OrderByTimeStampDesc, obj.Page, obj.PageSize));
-            Response.Headers.Add("processing-time", res.ProcessingTime);
-            return await Task.FromResult(Ok(res.Result));
-        }
-            
+        }   
 
         [HttpGet("{key}")]
         [ProducesResponseType(typeof(string), 200)]
@@ -57,26 +46,6 @@ namespace MODB.Api.Controllers.V1
         {
             try{
                 var res = Utilities.StopWatch(() => _clientsDB.Get(key));
-                Response.Headers.Add("processing-time", res.ProcessingTime);
-                return await Task.FromResult(Ok(res.Result));
-            }catch(ArgumentException ex){
-                throw new Exceptions.ApplicationValidationErrorException(ex, HttpContext.TraceIdentifier);
-            }
-            catch(FlatFileDB.Exceptions.KeyNotFoundException ex){
-                throw new Exceptions.ApplicationErrorException((int)System.Net.HttpStatusCode.NotFound, System.Net.HttpStatusCode.NotFound.ToString(), ex.Message);
-            }
-        }
-
-        [HttpGet("{key}/Detailed")]
-        [ProducesResponseType(typeof(MODBRecord), 200)]
-        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ValidationError), 400)]
-        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
-        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 404)]
-        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 500)]
-        public async Task<IActionResult> GetClientDetailedAsync([FromRoute] string key)
-        {
-            try{
-                var res = Utilities.StopWatch(() => _clientsDB.GetDetailed(key));
                 Response.Headers.Add("processing-time", res.ProcessingTime);
                 return await Task.FromResult(Ok(res.Result));
             }catch(ArgumentException ex){
@@ -134,10 +103,10 @@ namespace MODB.Api.Controllers.V1
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 404)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 500)]
-        public async Task<IActionResult> GetTagsAsync([FromQuery] GetTagsPagedListQueryParams obj){
+        public async Task<IActionResult> GetTagsAsync([FromQuery] GetTagsOrderedQueryParams obj){
             Request.Headers.TryGetValue("ApiKey", out var apikey);
             try{
-                var res = Utilities.StopWatch(() => _clientsDB.GetTags(obj.OrderAsc, obj.OrderDesc, obj.Page, obj.PageSize));
+                var res = Utilities.StopWatch(() => _clientsDB.GetTagsOrdered(obj.Text, obj.OrderAsc, obj.OrderDesc, obj.Page, obj.PageSize));
                 Response.Headers.Add("processing-time", res.ProcessingTime);
                 return await Task.FromResult(Ok(res.Result));
             }catch(ArgumentException ex){

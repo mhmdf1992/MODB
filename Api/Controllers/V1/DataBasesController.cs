@@ -51,7 +51,8 @@ namespace MODB.Api.Controllers.V1
                         var clientsDB = _dbs[apikey];
                         if(!clientsDB.ContainsKey(name))
                             throw new Exceptions.KeyNotFoundException(name);
-                        return new DBInformation(){Name = name, Size = clientsDB[name].Size};
+                        var db = clientsDB[name];
+                        return new DBInformation(){Name = name, Size = db.Size, Manifests = db.Config.NumberOfManifests};
                     });
                 Response.Headers.Add("processing-time", res.ProcessingTime);
                 return await Task.FromResult(Ok(res.Result));
@@ -76,7 +77,7 @@ namespace MODB.Api.Controllers.V1
                         var clientDBs = _dbs[apikey];
                         if(clientDBs.ContainsKey(obj.Name))
                             throw new Exceptions.UniqueKeyConstraintException(obj.Name);
-                        _dbs[apikey].TryAdd(obj.Name, new FlatFileKeyValDB(System.IO.Path.Combine(_settings.Path.Concat(new string[]{apikey, obj.Name}).ToArray())));
+                        _dbs[apikey].TryAdd(obj.Name, new FlatFileKeyValDB(System.IO.Path.Combine(_settings.Path.Concat(new string[]{apikey, obj.Name}).ToArray()), obj.Manifests));
                     });
                 Response.Headers.Add("processing-time", res.ProcessingTime);
                 return await Task.FromResult(Ok());
@@ -119,14 +120,14 @@ namespace MODB.Api.Controllers.V1
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 404)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 500)]
-        public async Task<IActionResult> GetKeysAsync([FromRoute] string db, [FromQuery] GetPagedListQueryParams obj){
+        public async Task<IActionResult> GetKeysAsync([FromRoute] string db, [FromQuery] GetFilteredQueryParams obj){
             Request.Headers.TryGetValue("ApiKey", out var apikey);
             try{
                 var res = Utilities.StopWatch(() => {
                         var clientDBs = _dbs[apikey];
                         if(!clientDBs.ContainsKey(db))
                             throw new Exceptions.KeyNotFoundException(db);
-                        return _dbs[apikey][db].GetKeys(obj.Page, obj.PageSize);
+                        return _dbs[apikey][db].GetKeys(obj.Tags, obj.From, obj.To, obj.Page, obj.PageSize);
                     });
                 Response.Headers.Add("processing-time", res.ProcessingTime);
                 return await Task.FromResult(Ok(res.Result));
@@ -144,39 +145,14 @@ namespace MODB.Api.Controllers.V1
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 404)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 500)]
-        public async Task<IActionResult> GetValuesAsync([FromRoute] string db, [FromQuery] GetFilteredPagedListQueryParams obj){
+        public async Task<IActionResult> GetValuesAsync([FromRoute] string db, [FromQuery] GetFilteredQueryParams obj){
             Request.Headers.TryGetValue("ApiKey", out var apikey);
             try{
                 var res = Utilities.StopWatch(() => {
                         var clientDBs = _dbs[apikey];
                         if(!clientDBs.ContainsKey(db))
                             throw new Exceptions.KeyNotFoundException(db);
-                        return _dbs[apikey][db].Get(obj.Tags, obj.From, obj.To, obj.OrderByKeyAsc, obj.OrderByKeyDesc, obj.OrderByTimeStampAsc, obj.OrderByTimeStampDesc, obj.Page, obj.PageSize);
-                    });
-                Response.Headers.Add("processing-time", res.ProcessingTime);
-                return await Task.FromResult(Ok(res.Result));
-            }catch(ArgumentException ex){
-                throw new Exceptions.ApplicationValidationErrorException(ex, HttpContext.TraceIdentifier);
-            }
-            catch(Exceptions.KeyNotFoundException ex){
-                throw new Exceptions.ApplicationErrorException((int)System.Net.HttpStatusCode.NotFound, System.Net.HttpStatusCode.NotFound.ToString(), ex.Message);
-            }
-        }
-
-        [HttpGet("{db}/Values/Detailed")]
-        [ProducesResponseType(typeof(PagedList<MODBRecord>), 200)]
-        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ValidationError), 400)]
-        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 404)]
-        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
-        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 500)]
-        public async Task<IActionResult> GetValuesDetailedAsync([FromRoute] string db, [FromQuery] GetFilteredPagedListQueryParams obj){
-            Request.Headers.TryGetValue("ApiKey", out var apikey);
-            try{
-                var res = Utilities.StopWatch(() => {
-                        var clientDBs = _dbs[apikey];
-                        if(!clientDBs.ContainsKey(db))
-                            throw new Exceptions.KeyNotFoundException(db);
-                        return _dbs[apikey][db].GetDetailed(obj.Tags, obj.From, obj.To, obj.OrderByKeyAsc, obj.OrderByKeyDesc, obj.OrderByTimeStampAsc, obj.OrderByTimeStampDesc, obj.Page, obj.PageSize);
+                        return _dbs[apikey][db].Get(obj.Tags, obj.From, obj.To, obj.Page, obj.PageSize);
                     });
                 Response.Headers.Add("processing-time", res.ProcessingTime);
                 return await Task.FromResult(Ok(res.Result));
@@ -213,33 +189,8 @@ namespace MODB.Api.Controllers.V1
             }
         }
 
-        [HttpGet("{db}/Keys/{key}/Detailed")]
-        [ProducesResponseType(typeof(MODBRecord), 200)]
-        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ValidationError), 400)]
-        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 404)]
-        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
-        [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 500)]
-        public async Task<IActionResult> GetKeyDetailedAsync([FromRoute] string db, [FromRoute] string key){
-            Request.Headers.TryGetValue("ApiKey", out var apikey);
-            try{
-                var res = Utilities.StopWatch(() => {
-                        var clientDBs = _dbs[apikey];
-                        if(!clientDBs.ContainsKey(db))
-                            throw new Exceptions.KeyNotFoundException(db);
-                        return _dbs[apikey][db].GetDetailed(key);
-                    });
-                Response.Headers.Add("processing-time", res.ProcessingTime);
-                return await Task.FromResult(Ok(res.Result));
-            }catch(ArgumentException ex){
-                throw new Exceptions.ApplicationValidationErrorException(ex, HttpContext.TraceIdentifier);
-            }
-            catch(FlatFileDB.Exceptions.KeyNotFoundException ex){
-                throw new Exceptions.ApplicationErrorException((int)System.Net.HttpStatusCode.NotFound, System.Net.HttpStatusCode.NotFound.ToString(), ex.Message);
-            }
-        }
-
         [HttpGet("{db}/Keys/{key}/exists")]
-        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(typeof(bool), 200)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ValidationError), 400)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 404)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
@@ -294,14 +245,14 @@ namespace MODB.Api.Controllers.V1
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 404)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 500)]
-        public async Task<IActionResult> GetTagsAsync([FromRoute] string db, [FromQuery] GetTagsPagedListQueryParams obj){
+        public async Task<IActionResult> GetTagsAsync([FromRoute] string db, [FromQuery] GetTagsFilteredQueryParams obj){
             Request.Headers.TryGetValue("ApiKey", out var apikey);
             try{
                 var res = Utilities.StopWatch(() => {
                         var clientDBs = _dbs[apikey];
                         if(!clientDBs.ContainsKey(db))
                             throw new Exceptions.KeyNotFoundException(db);
-                        return _dbs[apikey][db].GetTags(obj.OrderAsc, obj.OrderDesc, obj.Page, obj.PageSize);
+                        return _dbs[apikey][db].GetTags(obj.Text, obj.Page, obj.PageSize);
                     });
                 Response.Headers.Add("processing-time", res.ProcessingTime);
                 return await Task.FromResult(Ok(res.Result));

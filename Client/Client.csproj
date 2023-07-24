@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\DTOs\DTOs.csproj" />
+    <ProjectReference Include="..\CHTTPClient\CHTTPClient.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="system.text.json" Version="7.0.3" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>netStandard2.1</TargetFramework>
+  </PropertyGroup>
+
+</Project>

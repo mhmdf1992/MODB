@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 
@@ -80,8 +81,6 @@ namespace MODB.ConcurrentFile{
 
         public void ReadStream(Action<Stream> action, long startPosition = 0, int? length = null)
         {
-            
-                
             while(IsFileLockedForRead()){
                 Thread.Sleep(10);
             }
@@ -90,9 +89,7 @@ namespace MODB.ConcurrentFile{
                     if(stream.Length < startPosition + (length ?? 0))
                         throw new Exception("File length is less than requested length");
                     if(stream.Length == 0){
-                        using(var resStream = new MemoryStream()){
-                            action(resStream);
-                        }
+                        action(stream);
                         return;
                     }
                     stream.Seek(startPosition, SeekOrigin.Begin);
@@ -100,6 +97,20 @@ namespace MODB.ConcurrentFile{
                         CopyStream(stream, resStream, length ?? (int)(stream.Length - startPosition));
                         action(resStream);
                     }
+                }
+            }catch{
+                throw;
+            }
+        }
+
+        public void ReadStream(Action<Stream> action)
+        {
+            while(IsFileLockedForRead()){
+                Thread.Sleep(10);
+            }
+            try{
+                using (var stream = new FileStream(_path, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite)){
+                    action(stream);
                 }
             }catch{
                 throw;
@@ -186,13 +197,53 @@ namespace MODB.ConcurrentFile{
             }
         }
 
-        void CopyStream(Stream input, Stream output, int bytes){
+        protected void CopyStream(Stream input, Stream output, int bytes){
             byte[] buffer = new byte[32768];
             int read;
             while (bytes > 0 && 
                 (read = input.Read(buffer, 0, Math.Min(buffer.Length, bytes))) > 0){
                 output.Write(buffer, 0, read);
                 bytes -= read;
+            }
+        }
+
+        public IEnumerable<string> Read(IEnumerable<ReadObj> readObjs)
+        {
+            List<string> result = new List<string>();
+            while(IsFileLockedForRead()){
+                Thread.Sleep(10);
+            }
+            try{
+                using (Stream stream = new FileStream(_path, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite)){
+                    if(stream.Length == 0)
+                        return result;
+                    foreach(var obj in readObjs){
+                        if(stream.Length < obj.Position + (obj.Length ?? 0))
+                            throw new Exception("File length is less than requested length");
+                        stream.Seek(obj.Position, SeekOrigin.Begin);
+                        byte[] b = new byte[obj.Length ?? (stream.Length - obj.Position)];
+                        stream.Read(b, 0, obj.Length ?? (int)(stream.Length - obj.Position));
+                        result.Add(System.Text.Encoding.UTF8.GetString(b));
+                    }
+                    return result;
+                }
+            }catch{
+                throw;
+            }
+        }
+
+        public T ReadStream<T>(Func<Stream, T> func)
+        {
+            while(IsFileLockedForRead()){
+                Thread.Sleep(10);
+            }
+            try{
+                using (var stream = new FileStream(_path, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite)){
+                    stream.Seek(0, SeekOrigin.Begin);
+                    return func(stream);
+                }
+            }catch{
+                throw;
             }
         }
     }

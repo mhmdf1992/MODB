@@ -18,9 +18,13 @@ namespace MODB.Api.Attributes
             }
 
             var clientsDB = context.HttpContext.RequestServices.GetRequiredService<IKeyValDB>();
-            if (!clientsDB.Exists(extractedApiKey))
-            {
-                throw new Exceptions.ApplicationErrorException((int)System.Net.HttpStatusCode.Unauthorized, System.Net.HttpStatusCode.Unauthorized.ToString(), "Api key not valid");
+            try{
+                if (!clientsDB.Exists(extractedApiKey))
+                {
+                    throw new Exceptions.ApplicationErrorException((int)System.Net.HttpStatusCode.Unauthorized, System.Net.HttpStatusCode.Unauthorized.ToString(), "Api key not valid");
+                }
+            }catch(ArgumentException ex){
+                throw new Exceptions.ApplicationValidationErrorException(ex, context.HttpContext.TraceIdentifier);
             }
             await next();
         }
