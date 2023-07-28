@@ -9,7 +9,7 @@ namespace MODB.FlatFileDB{
         protected int _key; public int Key => _key;
 
         public IEnumerable<IEnumerable<string>> GetTags(string text = null){
-            System.Console.WriteLine(_key);
+
             using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false})){
                 while(csv.Read())
                 {
@@ -19,7 +19,7 @@ namespace MODB.FlatFileDB{
         }
 
         public ManifestItemMin? Find(string key, System.Threading.CancellationTokenSource cs){
-            System.Console.WriteLine(_key);
+
             using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false})){
                 while(csv.Read() && ! cs.IsCancellationRequested)
                 {

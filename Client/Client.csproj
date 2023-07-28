@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\DTOs\DTOs.csproj" />
     <ProjectReference Include="..\CHTTPClient\CHTTPClient.csproj" />
   </ItemGroup>
 
