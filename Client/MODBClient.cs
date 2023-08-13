@@ -219,7 +219,7 @@ namespace MODB.Client{
             }
         }
 
-        public async Task SetAsync(string db, string key, string value, IEnumerable<string> tags = null, long? timestamp = null, CancellationToken cs = default)
+        public async Task SetAsync(string db, string key, string value, IEnumerable<string> tags = null, long? timestamp = null, bool? createDb = true, CancellationToken cs = default)
         {
             if(string.IsNullOrEmpty(db))
                 throw new ArgumentException(paramName: "db", message: "Database name, can not be null or empty");
@@ -235,6 +235,8 @@ namespace MODB.Client{
                 queryStringParams.Add("tags", string.Join(',', tags));
             if(timestamp != null) 
                 queryStringParams.Add("timestamp", $"{timestamp}");
+            if(createDb != null)
+                queryStringParams.Add("createdb", $"{createDb}");
             try{
                 await _httpClient.PostAsync(
                     endpoint: Endpoint("databases/{0}/keys"),

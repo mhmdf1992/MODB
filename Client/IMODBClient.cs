@@ -6,7 +6,7 @@ namespace MODB.Client{
         Task<IEnumerable<string>> GetDBsAsync(CancellationToken cs = default);
         Task<DBInformation> GetDBAsync(string name, CancellationToken cs = default);
         Task CreateDBAsync(string name, int? manifests = 10, CancellationToken cs = default);
-        Task SetAsync(string db, string key, string value, IEnumerable<string> tags = null, long? timestamp = null, CancellationToken cs = default);
+        Task SetAsync(string db, string key, string value, IEnumerable<string> tags = null, long? timestamp = null, bool? createDb = true, CancellationToken cs = default);
         Task<string> GetAsync(string db, string key, CancellationToken cs = default);
         Task<bool> ExistsAsync(string db, string key, CancellationToken cs = default);
         Task DeleteAsync(string db, string key, CancellationToken cs = default);

@@ -25,6 +25,7 @@ namespace MODB.Api.DTOs{
         [Required(AllowEmptyStrings = false)] public string Key {get; set;}
         public IEnumerable<string> Tags {get; set;}
         public long? TimeStamp {get; set;}
+        public bool? CreateDb {get; set;}
     }
     public class GetQueryParams{
         public int Page {get; set;} = 1;

@@ -100,6 +100,8 @@ namespace MODB.Api.Controllers.V1
             try{
                 var res = Utilities.StopWatch(() => {
                         var clientDBs = _dbs[apikey];
+                        if(!clientDBs.ContainsKey(db) && obj.CreateDb == true)
+                            _dbs[apikey].TryAdd(db, new FlatFileKeyValDB(Path.Combine(_settings.Path.Concat(new string[]{apikey, db}).ToArray())));
                         if(!clientDBs.ContainsKey(db))
                             throw new Exceptions.KeyNotFoundException(db);
                         _dbs[apikey][db].Set(obj.Key, stream, obj.Tags, obj.TimeStamp);
