@@ -8,18 +8,14 @@ namespace MODB.FlatFileDB{
         void Set(string key, Stream stream, IEnumerable<string> tags = null, long? timeStamp = null);
         void Insert(string key, string val, IEnumerable<string> tags = null, long? timeStamp = null);
         void Insert(string key, Stream stream, IEnumerable<string> tags = null, long? timeStamp = null);
-        void Insert(InsertObject[] objs);
         void Delete(string key);
         bool Exists(string key);
         string Get(string key);
         bool Get(string key, Action<Stream> action);
         PagedList<string> Get(IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null, int page = 1, int pageSize = 10);
-        PagedList<string> GetOrdered(IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null, bool? orderByKeyAsc = null, bool? orderByKeyDesc = null, bool? orderByTimeStampAsc = null, bool? orderByTimeStampDesc = null, int page = 1, int pageSize = 10);
         PagedList<string> GetTags(string text = null, int page = 1, int pageSize = 10);
-        PagedList<string> GetTagsOrdered(string text = null, bool? orderAsc = null, bool? orderDesc = null, int page = 1, int pageSize = 10);
         PagedList<string> GetKeys(int page = 1, int pageSize = 10);
         PagedList<string> GetKeys(IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null, int page = 1, int pageSize = 10);
-        PagedList<string> GetKeysOrdered(IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null, bool? orderByKeyAsc = null, bool? orderByKeyDesc = null, bool? orderByTimeStampAsc = null, bool? orderByTimeStampDesc = null, int page = 1, int pageSize = 10);
         string Name {get;}
         long Size {get;}
         public DBConfig Config {get;}

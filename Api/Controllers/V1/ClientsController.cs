@@ -6,7 +6,6 @@ using MODB.Api.DTOs;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
-using System.Linq;
 
 namespace MODB.Api.Controllers.V1
 {
@@ -16,28 +15,44 @@ namespace MODB.Api.Controllers.V1
     public class ClientsController : ControllerBase
     {
         
-        readonly Settings _settings;
         readonly IKeyValDB _clientsDB;
         readonly ConcurrentDictionary<string, ConcurrentDictionary<string, FlatFileKeyValDB>> _clientsDBs;
-        public ClientsController(Settings settings, IKeyValDB clientsDB, ConcurrentDictionary<string, ConcurrentDictionary<string, FlatFileKeyValDB>> clientsDBs)
+        public ClientsController(IKeyValDB clientsDB, ConcurrentDictionary<string, ConcurrentDictionary<string, FlatFileKeyValDB>> clientsDBs)
         {
-            _settings = settings;
             _clientsDB = clientsDB;
             _clientsDBs = clientsDBs;
         }
 
+        OkObjectResult OKResult<T> (T res, string processingTime){
+            Response.Headers.Add("processing-time", processingTime);
+           return Ok(new MODBResponse<T>(res));
+        }
+        OkObjectResult OKMODBRecords(PagedList<string> res, string processingTime){
+            Response.Headers.Add("processing-time", processingTime);
+           return Ok(new MODBRecordsResponse(res));
+        }
+
+        OkObjectResult OKMODBRecord(string res, string processingTime){
+            Response.Headers.Add("processing-time", processingTime);
+           return Ok(new MODBRecordResponse(res));
+        }
+
+        OkObjectResult OKResult (string processingTime){
+            Response.Headers.Add("processing-time", processingTime);
+            return Ok(new MODBResponse());
+        }
+
         [HttpGet]
-        [ProducesResponseType(typeof(PagedList<string>), 200)]
+        [ProducesResponseType(typeof(MODBResponse<PagedList<string>>), 200)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 500)]
-        public async Task<IActionResult> GetClientsOrderedAsync([FromQuery] GetOrderedQueryParams obj){
-            var res = Utilities.StopWatch(() => _clientsDB.GetOrdered(obj.Tags, obj.From, obj.To, obj.OrderByKeyAsc, obj.OrderByKeyDesc, obj.OrderByTimeStampAsc, obj.OrderByTimeStampDesc, obj.Page, obj.PageSize));
-            Response.Headers.Add("processing-time", res.ProcessingTime);
-            return await Task.FromResult(Ok(res.Result));
+        public async Task<IActionResult> GetClientsAsync([FromQuery] GetFilteredQueryParams obj){
+            var res = Utilities.StopWatch(() => _clientsDB.Get(obj.Tags, obj.From, obj.To, obj.Page, obj.PageSize));
+            return await Task.FromResult(OKMODBRecords(res.Result, res.ProcessingTime));
         }   
 
         [HttpGet("{key}")]
-        [ProducesResponseType(typeof(string), 200)]
+        [ProducesResponseType(typeof(MODBResponse<string>), 200)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ValidationError), 400)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 404)]
@@ -47,7 +62,7 @@ namespace MODB.Api.Controllers.V1
             try{
                 var res = Utilities.StopWatch(() => _clientsDB.Get(key));
                 Response.Headers.Add("processing-time", res.ProcessingTime);
-                return await Task.FromResult(Ok(res.Result));
+                return await Task.FromResult(OKMODBRecord(res.Result, res.ProcessingTime));
             }catch(ArgumentException ex){
                 throw new Exceptions.ApplicationValidationErrorException(ex, HttpContext.TraceIdentifier);
             }
@@ -57,7 +72,7 @@ namespace MODB.Api.Controllers.V1
         }
         
         [HttpPost]
-        [ProducesResponseType(typeof(OkResult), 200)]
+        [ProducesResponseType(typeof(MODBResponse), 200)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ValidationError), 400)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 500)]
@@ -66,8 +81,7 @@ namespace MODB.Api.Controllers.V1
                 var res = Utilities.StopWatch(() => {
                     _clientsDB.Set(obj.Key, stream, obj.Tags, obj.TimeStamp);
                     _clientsDBs.TryAdd(obj.Key, new ConcurrentDictionary<string, FlatFileKeyValDB>());});
-                Response.Headers.Add("processing-time", res.ProcessingTime);
-                return await Task.FromResult(Ok());
+                return await Task.FromResult(OKResult(res.ProcessingTime));
             }catch(ArgumentException ex){
                 throw new Exceptions.ApplicationValidationErrorException(ex, HttpContext.TraceIdentifier);
             }
@@ -75,7 +89,7 @@ namespace MODB.Api.Controllers.V1
         }
 
         [HttpDelete("{key}")]
-        [ProducesResponseType(typeof(OkResult), 200)]
+        [ProducesResponseType(typeof(MODBResponse), 200)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ValidationError), 400)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 404)]
@@ -85,10 +99,9 @@ namespace MODB.Api.Controllers.V1
             try{
                 var res = Utilities.StopWatch(() => {
                     _clientsDB.Delete(key);
-                    _clientsDBs.TryRemove(key, out ConcurrentDictionary<string, MODB.FlatFileDB.FlatFileKeyValDB> val);
+                    _clientsDBs.TryRemove(key, out ConcurrentDictionary<string, FlatFileKeyValDB> val);
                 });
-                Response.Headers.Add("processing-time", res.ProcessingTime);
-                return await Task.FromResult(Ok());
+                return await Task.FromResult(OKResult(res.ProcessingTime));
             }catch(ArgumentException ex){
                 throw new Exceptions.ApplicationValidationErrorException(ex, HttpContext.TraceIdentifier);
             }
@@ -98,17 +111,16 @@ namespace MODB.Api.Controllers.V1
         }
 
         [HttpGet("Tags")]
-        [ProducesResponseType(typeof(PagedList<string>), 200)]
+        [ProducesResponseType(typeof(MODBResponse<PagedList<string>>), 200)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ValidationError), 400)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 404)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 500)]
-        public async Task<IActionResult> GetTagsAsync([FromQuery] GetTagsOrderedQueryParams obj){
+        public async Task<IActionResult> GetTagsAsync([FromQuery] GetTagsFilteredQueryParams obj){
             Request.Headers.TryGetValue("ApiKey", out var apikey);
             try{
-                var res = Utilities.StopWatch(() => _clientsDB.GetTagsOrdered(obj.Text, obj.OrderAsc, obj.OrderDesc, obj.Page, obj.PageSize));
-                Response.Headers.Add("processing-time", res.ProcessingTime);
-                return await Task.FromResult(Ok(res.Result));
+                var res = Utilities.StopWatch(() => _clientsDB.GetTags(obj.Text, obj.Page, obj.PageSize));
+                return await Task.FromResult(OKResult(res.Result, res.ProcessingTime));
             }catch(ArgumentException ex){
                 throw new Exceptions.ApplicationValidationErrorException(ex, HttpContext.TraceIdentifier);
             }

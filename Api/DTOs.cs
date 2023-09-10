@@ -1,5 +1,9 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using MODB.Api.Json;
+using MODB.FlatFileDB;
+using Newtonsoft.Json;
 
 namespace MODB.Api.DTOs{
     public class DBResponse<T>{
@@ -36,21 +40,52 @@ namespace MODB.Api.DTOs{
         public string Text {get; set;}
     }
 
-    public class GetTagsOrderedQueryParams : GetTagsFilteredQueryParams{
-        public bool? OrderAsc {get; set;}
-        public bool? OrderDesc {get; set;}
-    }
-
     public class GetFilteredQueryParams : GetQueryParams{
         public IEnumerable<string> Tags {get; set;}
         public long? From {get; set;}
         public long? To {get; set;}
     }
 
-    public class GetOrderedQueryParams : GetFilteredQueryParams{
-        public bool? OrderByKeyAsc {get; set;}
-        public bool? OrderByKeyDesc {get; set;}
-        public bool? OrderByTimeStampAsc {get; set;}
-        public bool? OrderByTimeStampDesc {get; set;}
+    public class MODBRecordsResponse{
+        public MODBRecordsResponse(PagedList<string> result){
+            Result = result;
+        }
+        public MODBRecordsResponse(){}
+        public int StatusCode {get; set;} = (int)System.Net.HttpStatusCode.OK;
+        public string StatusMessage {get; set;} = System.Net.HttpStatusCode.OK.ToString();
+        [System.Text.Json.Serialization.JsonConverter(typeof(MODBRecordsJsonConverter))]
+        public PagedList<string> Result {get; set;}
+    }
+
+    public class MODBRecordResponse{
+        public MODBRecordResponse(string result){
+            Result = result;
+        }
+        public MODBRecordResponse(){}
+        public int StatusCode {get; set;} = (int)System.Net.HttpStatusCode.OK;
+        public string StatusMessage {get; set;} = System.Net.HttpStatusCode.OK.ToString();
+        [System.Text.Json.Serialization.JsonConverter(typeof(MODBRecordJsonConverter))]
+        public string Result {get; set;}
+    }
+
+    public class MODBResponse{
+        public int StatusCode {get; set;} = (int)System.Net.HttpStatusCode.OK;
+        public string StatusMessage {get; set;} = System.Net.HttpStatusCode.OK.ToString();
+    }
+    public class MODBResponse<T> : MODBResponse{
+        public MODBResponse(T result){
+            Result = result;
+        }
+        public MODBResponse(){}
+        public T Result {get; set;}
+    }
+
+    public class Error
+    {
+        public object Code { get; set; }
+        public string Field { get; set; }
+        public object AttemptedValue { get; set; }
+        public string Message { get; set; }
+        public string HelpURL { get; set; }
     }
 }

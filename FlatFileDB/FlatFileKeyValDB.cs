@@ -95,13 +95,6 @@ namespace MODB.FlatFileDB{
                 .ToPagedList(page, pageSize);
         }
 
-        public PagedList<string> GetTagsOrdered(string text = null, bool? orderAsc = null, bool? orderDesc = null, int page = 1, int pageSize = 10){
-            return Task.WhenAll(_manFileWRs.Values.Select( x => Task.Run(() => x.GetTags(text)))).Result.SelectMany(x => x).SelectMany(x => x)
-                .DefaultIfEmpty()
-                .Distinct()
-                .ToOrderedPagedList(page, pageSize, orderAsc, orderDesc);
-        }
-
         public bool Exists(string key) => Validator.ValidateKey(key) ? ManifestContainsItem(key, out ManifestItemMin? manifestItem) : false;
 
         public PagedList<string> Get(IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null, int page = 1, int pageSize = 10){
@@ -109,14 +102,6 @@ namespace MODB.FlatFileDB{
                 .DefaultIfEmpty()
                 .SelectMany(x => x)
                 .ToPagedList(page, pageSize)
-                .Read(_flatFileWR);
-        }
-
-        public PagedList<string> GetOrdered(IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null, bool? orderByKeyAsc = null, bool? orderByKeyDesc = null, bool? orderByTimeStampAsc = null, bool? orderByTimeStampDesc = null, int page = 1, int pageSize = 10){
-            return Task.WhenAll(_manFileWRs.Values.Select(x => Task.Run(() => x.Filter(tags, timeStampFrom, timeStampTo)))).Result
-                .DefaultIfEmpty()
-                .SelectMany(x => x)
-                .ToOrderedPagedList(page, pageSize, orderByKeyAsc, orderByKeyAsc, orderByTimeStampAsc, orderByTimeStampDesc)
                 .Read(_flatFileWR);
         }
 
@@ -134,33 +119,6 @@ namespace MODB.FlatFileDB{
                 .DefaultIfEmpty()
                 .SelectMany(x => x)
                 .ToPagedList(page, pageSize);
-        }
-
-        public PagedList<string> GetKeysOrdered(IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null, bool? orderByKeyAsc = null, bool? orderByKeyDesc = null, bool? orderByTimeStampAsc = null, bool? orderByTimeStampDesc = null, int page = 1, int pageSize = 10)
-        {
-            return Task.WhenAll(_manFileWRs.Values.Select(x => Task.Run(() => x.GetKeysOrdered(tags, timeStampFrom, timeStampTo)))).Result
-                .DefaultIfEmpty()
-                .SelectMany(x => x)
-                .ToOrderedPagedList(page, pageSize, orderByKeyAsc, orderByKeyDesc, orderByTimeStampAsc, orderByTimeStampDesc)
-                .Keys();
-        }
-
-        public void Insert(InsertObject[] objs)
-        {
-            var manifests = _manFileWRs.Select(x => new {ManifestItems = new List<ManifestItem>(), Index = x.Key, Manifest = x.Value}).ToDictionary(x => x.Index);
-            var startPosition = _flatFileWR.WriteAtEnd(string.Join("", objs.Select(x => x.Value)));
-            var index = 1;
-            for(int i = 0; i < objs.Length; i ++){
-                var obj = objs[i];
-                var manifest = manifests[index];
-                var manifestItem = new ManifestItem(obj.Key, startPosition, obj.Value.Length, obj.TimeStamp ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds(), index, string.Join(' ',obj.Tags));
-                manifest.ManifestItems.Add(manifestItem);
-                startPosition += manifestItem.Length;
-                index += 1;
-                if(index > manifests.Values.Count)
-                    index = 1;
-            }
-            manifests.Values.ToList().ForEach(x => (x.Manifest as IFileWR).WriteAtEnd(string.Join("",x.ManifestItems.Select(x => x.ToCsv()))));
         }
     }
 }

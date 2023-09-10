@@ -1,4 +1,5 @@
 using System;
+using MODB.Client.DTOs;
 
 namespace MODB.Client{
     public class MODBRequestFailedException : Exception{
