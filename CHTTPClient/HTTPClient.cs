@@ -231,5 +231,26 @@ namespace MODB.CHTTPClient{
                 }
             }
         }
+
+        public async Task<T> SendAsync<T>(HttpRequestMessage request, Func<Stream, T> func, CancellationToken cancellationToken = default)
+        {
+            using (var response = await GetClientInstance().SendAsync(request)){
+                var res = await response.Content.ReadAsStreamAsync();
+                try{
+                   response.EnsureSuccessStatusCode();
+                   return func(res);
+                }
+                catch (System.Net.Http.HttpRequestException ex)
+                {
+                    using(StreamReader streamReader = new StreamReader(res)){
+                        throw new CHTTPRequestFailedException(ex, await streamReader.ReadToEndAsync(), (int)response.StatusCode, response.StatusCode.ToString());
+                    }
+                }
+                catch
+                {
+                    throw;
+                }
+            }
+        }
     }
 }

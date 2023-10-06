@@ -27,14 +27,16 @@ namespace MODB.Api.Controllers.V1
             Response.Headers.Add("processing-time", processingTime);
            return Ok(new MODBResponse<T>(res));
         }
-        OkObjectResult OKMODBRecords(PagedList<string> res, string processingTime){
+        OkObjectResult OKMODBRecords(PagedList<string> res, string processingTime, string resultType){
             Response.Headers.Add("processing-time", processingTime);
-           return Ok(new MODBRecordsResponse(res));
+            Response.Headers.Add("result-type", resultType);
+           return Ok( resultType == "json" ? new MODBRecordsJsonResponse(res) : new MODBRecordsResponse(res));
         }
 
-        OkObjectResult OKMODBRecord(string res, string processingTime){
+        OkObjectResult OKMODBRecord(string res, string processingTime, string resultType){
             Response.Headers.Add("processing-time", processingTime);
-           return Ok(new MODBRecordResponse(res));
+            Response.Headers.Add("result-type", resultType);
+           return Ok(resultType == "json" ? new MODBRecordJsonResponse(res) : new MODBRecordResponse(res));
         }
 
         OkObjectResult OKResult (string processingTime){
@@ -47,8 +49,9 @@ namespace MODB.Api.Controllers.V1
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 500)]
         public async Task<IActionResult> GetClientsAsync([FromQuery] GetFilteredQueryParams obj){
+            Request.Headers.TryGetValue("result-type", out var resultType);
             var res = Utilities.StopWatch(() => _clientsDB.Get(obj.Tags, obj.From, obj.To, obj.Page, obj.PageSize));
-            return await Task.FromResult(OKMODBRecords(res.Result, res.ProcessingTime));
+            return await Task.FromResult(OKMODBRecords(res.Result, res.ProcessingTime, resultType));
         }   
 
         [HttpGet("{key}")]
@@ -60,9 +63,9 @@ namespace MODB.Api.Controllers.V1
         public async Task<IActionResult> GetClientAsync([FromRoute] string key)
         {
             try{
+                Request.Headers.TryGetValue("result-type", out var resultType);
                 var res = Utilities.StopWatch(() => _clientsDB.Get(key));
-                Response.Headers.Add("processing-time", res.ProcessingTime);
-                return await Task.FromResult(OKMODBRecord(res.Result, res.ProcessingTime));
+                return await Task.FromResult(OKMODBRecord(res.Result, res.ProcessingTime, resultType));
             }catch(ArgumentException ex){
                 throw new Exceptions.ApplicationValidationErrorException(ex, HttpContext.TraceIdentifier);
             }
@@ -117,7 +120,6 @@ namespace MODB.Api.Controllers.V1
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 401)]
         [ProducesResponseType(typeof(ConsistentApiResponseErrors.ConsistentErrors.ExceptionError), 500)]
         public async Task<IActionResult> GetTagsAsync([FromQuery] GetTagsFilteredQueryParams obj){
-            Request.Headers.TryGetValue("ApiKey", out var apikey);
             try{
                 var res = Utilities.StopWatch(() => _clientsDB.GetTags(obj.Text, obj.Page, obj.PageSize));
                 return await Task.FromResult(OKResult(res.Result, res.ProcessingTime));

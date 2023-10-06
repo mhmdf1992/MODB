@@ -14,4 +14,15 @@ namespace MODB.Api.Exceptions{
             _key = key;
         }
     }
+
+    public class DBNotReadyException : System.Exception{
+        protected string _name;
+        protected string _status;
+        public string Status => _status;
+        public string Name => _name;
+        public DBNotReadyException(string name, string status): base($"DB {name} is not ready. Current status {status}..."){
+            _name = name;
+            _status = status;
+        }
+    }
 }

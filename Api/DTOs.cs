@@ -19,6 +19,7 @@ namespace MODB.Api.DTOs{
         public string Name {get; set;}
         public long Size {get; set;}
         public int Manifests {get; set;}
+        public string LastClean {get; set;}
     }
 
     public class CreateDBQueryParams{
@@ -53,7 +54,6 @@ namespace MODB.Api.DTOs{
         public MODBRecordsResponse(){}
         public int StatusCode {get; set;} = (int)System.Net.HttpStatusCode.OK;
         public string StatusMessage {get; set;} = System.Net.HttpStatusCode.OK.ToString();
-        [System.Text.Json.Serialization.JsonConverter(typeof(MODBRecordsJsonConverter))]
         public PagedList<string> Result {get; set;}
     }
 
@@ -62,6 +62,27 @@ namespace MODB.Api.DTOs{
             Result = result;
         }
         public MODBRecordResponse(){}
+        public int StatusCode {get; set;} = (int)System.Net.HttpStatusCode.OK;
+        public string StatusMessage {get; set;} = System.Net.HttpStatusCode.OK.ToString();
+        public string Result {get; set;}
+    }
+
+    public class MODBRecordsJsonResponse{
+        public MODBRecordsJsonResponse(PagedList<string> result){
+            Result = result;
+        }
+        public MODBRecordsJsonResponse(){}
+        public int StatusCode {get; set;} = (int)System.Net.HttpStatusCode.OK;
+        public string StatusMessage {get; set;} = System.Net.HttpStatusCode.OK.ToString();
+        [System.Text.Json.Serialization.JsonConverter(typeof(MODBRecordsJsonConverter))]
+        public PagedList<string> Result {get; set;}
+    }
+
+    public class MODBRecordJsonResponse{
+        public MODBRecordJsonResponse(string result){
+            Result = result;
+        }
+        public MODBRecordJsonResponse(){}
         public int StatusCode {get; set;} = (int)System.Net.HttpStatusCode.OK;
         public string StatusMessage {get; set;} = System.Net.HttpStatusCode.OK.ToString();
         [System.Text.Json.Serialization.JsonConverter(typeof(MODBRecordJsonConverter))]

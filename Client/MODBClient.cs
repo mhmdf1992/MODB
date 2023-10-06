@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -89,12 +90,16 @@ namespace MODB.Client{
                 throw new ArgumentException(paramName: "db", message: "Database name, can not be null or empty");
             if(string.IsNullOrEmpty(key))
                 throw new ArgumentException(paramName: "key", message: "key, can not be null or empty");
+            var  request = new HttpRequestMessage(){
+                RequestUri = new Uri($"{_httpClient.Host}/{Endpoint($"databases/{db}/keys/{key}")}"),
+                Method = HttpMethod.Get
+            };
+            request.Headers.Add("response-type","json");
             try{
-                return await _httpClient.GetAsync(
-                    endpoint: Endpoint("databases/{0}/keys/{1}"),
+                return await _httpClient.SendAsync(
+                    request: request,
                     func: stream => JsonSerializer.Deserialize<MODBResponse<T>>(stream).Result, 
-                    cancellationToken: cs,
-                    routeParams: new string[]{db, key});
+                    cancellationToken: cs);
             }catch(CHTTPRequestFailedException ex){
                 throw new MODBRequestFailedException(ex, JsonSerializer.Deserialize<MODBError>(ex.Response), ex.StatusCode, ex.StatusMessage);
             }
@@ -235,10 +240,62 @@ namespace MODB.Client{
                 queryStringParams.Add("from", $"{from}");
             if(to != null)
                 queryStringParams.Add("to", $"{to}");
+
+            var  request = new HttpRequestMessage(){
+                RequestUri = new Uri($"{_httpClient.Host}/{Endpoint($"databases/{db}/values")}{(queryStringParams == null || !queryStringParams.Any() ? "" : $"?{string.Join("&", queryStringParams.Select(parm => $"{parm.Key}={parm.Value}"))}")}"),
+                Method = HttpMethod.Get
+            };
+            request.Headers.Add("response-type","json");
+            try{
+                return await _httpClient.SendAsync(
+                    request: request,
+                    func: stream => JsonSerializer.Deserialize<MODBResponse<PagedList<T>>>(stream).Result, 
+                    cancellationToken: cs);
+            }catch(CHTTPRequestFailedException ex){
+                throw new MODBRequestFailedException(ex, JsonSerializer.Deserialize<MODBError>(ex.Response), ex.StatusCode, ex.StatusMessage);
+            }
+        }
+
+        public async Task<string> GetStringAsync(string db, string key, CancellationToken cs = default)
+        {
+            if(string.IsNullOrEmpty(db))
+                throw new ArgumentException(paramName: "db", message: "Database name, can not be null or empty");
+            if(string.IsNullOrEmpty(key))
+                throw new ArgumentException(paramName: "key", message: "key, can not be null or empty");
+            try{
+                return await _httpClient.GetAsync(
+                    endpoint: Endpoint("databases/{0}/keys/{1}"),
+                    func: stream => JsonSerializer.Deserialize<MODBResponse<string>>(stream).Result, 
+                    cancellationToken: cs,
+                    routeParams: new string[]{db, key});
+            }catch(CHTTPRequestFailedException ex){
+                throw new MODBRequestFailedException(ex, JsonSerializer.Deserialize<MODBError>(ex.Response), ex.StatusCode, ex.StatusMessage);
+            }
+        }
+
+        public async Task<PagedList<string>> GetStringValuesAsync(string db, IEnumerable<string> tags = null, long? from = null, long? to = null, int page = 1, int pageSize = 10, CancellationToken cs = default)
+        {
+            if(string.IsNullOrEmpty(db))
+                throw new ArgumentException(paramName: "db", message: "Database name, can not be null or empty");
+            if(page <= 0)
+                throw new ArgumentException(paramName: "page", message: "Page, must be greater than 0");
+            if(pageSize <= 0)
+                throw new ArgumentException(paramName: "pageSize", message: "Page size, must be greater than 0");
+            var queryStringParams = new Dictionary<string, string>(){
+                {"page", $"{page}"},
+                {"pageSize", $"{pageSize}"}
+            };
+            if(tags != null && tags.Any())
+                queryStringParams.Add("tags", string.Join(',', tags));
+            if(from != null) 
+                queryStringParams.Add("from", $"{from}");
+            if(to != null)
+                queryStringParams.Add("to", $"{to}");
+            
             try{
                 return await _httpClient.GetAsync(
                     endpoint: Endpoint("databases/{0}/values"),
-                    func: stream => JsonSerializer.Deserialize<MODBResponse<PagedList<T>>>(stream).Result, 
+                    func: stream => JsonSerializer.Deserialize<MODBResponse<PagedList<string>>>(stream).Result, 
                     queryStringParams: queryStringParams,
                     cancellationToken: cs,
                     routeParams: db);

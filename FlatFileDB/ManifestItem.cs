@@ -14,6 +14,7 @@ namespace MODB.FlatFileDB{
         public string Key => _key;
         public long Position => _position;
         public int Length => _length;
+        uint _isDeleted;
         
         public ManifestItem(string key, long pos, int len, long timeStamp, int manifest, string tags = null){
             _key = key;
@@ -22,8 +23,9 @@ namespace MODB.FlatFileDB{
             _timeStamp = timeStamp;
             _tags = tags;
             _manifest = manifest;
+            _isDeleted = 0;
         }
-        public string ToCsv() => $"{_key},{_position},{_length},{_timeStamp},{(string.IsNullOrEmpty(_tags) ? "" : _tags)}{Environment.NewLine}";
+        public string ToCsv() => $"{_key},{_position},{_length},{_timeStamp},{(string.IsNullOrEmpty(_tags) ? "" : _tags)},{_isDeleted}{Environment.NewLine}";
         public Stream ToCsvStream() => new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ToCsv()));
     }
 }

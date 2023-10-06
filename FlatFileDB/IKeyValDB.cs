@@ -16,9 +16,17 @@ namespace MODB.FlatFileDB{
         PagedList<string> GetTags(string text = null, int page = 1, int pageSize = 10);
         PagedList<string> GetKeys(int page = 1, int pageSize = 10);
         PagedList<string> GetKeys(IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null, int page = 1, int pageSize = 10);
+        void Clone(IKeyValDB cloneDb);
+        void Rename(string name);
+        void Delete();
         string Name {get;}
         long Size {get;}
         public DBConfig Config {get;}
+        public DBStatus Status {get;}
+    }
+    public enum DBStatus{
+        READY,
+        CLEANING
     }
 }
 

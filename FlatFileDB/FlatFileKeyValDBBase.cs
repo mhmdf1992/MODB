@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace MODB.FlatFileDB{
     public class FlatFileKeyValDBBase{
+        protected DBStatus _status;
         protected DBConfig _dbConfig;
         protected string _path;
         protected string _flatFilePath;
@@ -17,8 +18,11 @@ namespace MODB.FlatFileDB{
         public string Name => _name;
         public long Size => _flatFileWR.Size + _manFileWRs.Values.Sum(x => (x as IFileWR).Size);
         public DBConfig Config => _dbConfig;
-        public FlatFileKeyValDBBase(string path, int numberOfManifestFiles = 10){
+        public DBStatus Status => _status;
+        public string LastClean => _flatFileWR.Size == 0 ? "" : _flatFileWR.FileInfo.CreationTimeUtc.ToString();
+        public FlatFileKeyValDBBase(string path, int numberOfManifestFiles = 10, DBStatus status = DBStatus.READY){
             _path = path;
+            _status = status;
             try{
                 if(numberOfManifestFiles <= 0)
                     throw new ArgumentException(paramName: nameof(numberOfManifestFiles), message: "Value should be greater than zero");
@@ -68,6 +72,12 @@ namespace MODB.FlatFileDB{
         protected bool ManifestContainsItem(string key, out ManifestItemMin? manifestItem){
             var cs = new System.Threading.CancellationTokenSource();
             return (manifestItem = Task.WhenAll(_manFileWRs.Values.Select(x => Task.Run(() => x.Find(key, cs)))).Result
+                .FirstOrDefault(x => x != null)) != null;
+        }
+
+        protected bool ManifestContainsItemToDelete(string key, out ManifestItemMinToDel? manifestItem){
+            var cs = new System.Threading.CancellationTokenSource();
+            return (manifestItem = Task.WhenAll(_manFileWRs.Values.Select(x => Task.Run(() => x.FindToDelete(key, cs)))).Result
                 .FirstOrDefault(x => x != null)) != null;
         }
     }

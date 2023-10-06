@@ -2,19 +2,21 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using MODB.ConcurrentFile;
 
 namespace MODB.FlatFileDB{
     public class FlatFileKeyValDB : FlatFileKeyValDBBase, IKeyValDB
     {
-        public FlatFileKeyValDB(string path, int? numberOfManifestFiles = 10): base(path, numberOfManifestFiles ?? 10){
+
+        public FlatFileKeyValDB(string path, int? numberOfManifestFiles = 10, DBStatus status = DBStatus.READY): base(path, numberOfManifestFiles ?? 10, status){
         }
         public void Delete(string key){
             Validator.ValidateKey(key);
-            if(!ManifestContainsItem(key, out ManifestItemMin? manifestItem))
+            if(!ManifestContainsItemToDelete(key, out ManifestItemMinToDel? manifestItem))
                 throw new Exceptions.KeyNotFoundException(key);
-            _manFileWRs[manifestItem.Value.Manifest].Remove(key);
+            _manFileWRs[manifestItem.Value.Manifest].Remove(manifestItem.Value.DelPosition);
         }
 
         public string Get(string key){
@@ -52,38 +54,18 @@ namespace MODB.FlatFileDB{
             (manfile.Value as IFileWR).WriteAtEndStream(manifestItem.ToCsvStream());
         }
 
-        public void Update(KeyValuePair<int,IManifestCSVFile> manFileWR, string key, string val, IEnumerable<string> tags = null, long? timeStamp = null){
-            var position = _flatFileWR.WriteAtEnd(val);
-            if(position == -1)
-                return;
-            var noTags = tags == null || !tags.Any();
-            var newManifestItem = new ManifestItem(key, position, val.Length, timeStamp ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds(), manFileWR.Key, noTags ? "" : string.Join(' ', tags));
-            manFileWR.Value.Update(key, newManifestItem);
-        }
-
-        public void Update(KeyValuePair<int,IManifestCSVFile> manFileWR, string key, Stream stream, IEnumerable<string> tags = null, long ? timeStamp = null){
-            var position = _flatFileWR.WriteAtEndStream(stream);
-            if(position == -1)
-                return;
-            var noTags = tags == null || !tags.Any();
-            var newManifestItem = new ManifestItem(key, position, (int)stream.Length, timeStamp ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds(), manFileWR.Key, noTags ? "" : string.Join(' ', tags));
-            manFileWR.Value.Update(key, newManifestItem);
-        }
-
         public void Set(string key, string val, IEnumerable<string> tags = null, long? timeStamp = null){
             Validator.ValidateKey(key);
-            if(ManifestContainsItem(key, out ManifestItemMin? manifestItem)){
-                Update(new KeyValuePair<int, IManifestCSVFile>(manifestItem.Value.Manifest, _manFileWRs[manifestItem.Value.Manifest]), key, val, tags, timeStamp);
-                return;
+            if(ManifestContainsItemToDelete(key, out ManifestItemMinToDel? manifestItem)){
+                _manFileWRs[manifestItem.Value.Manifest].Remove(manifestItem.Value.DelPosition);
             }
             Insert(key, val, tags, timeStamp);
         }
 
         public void Set(string key, Stream stream, IEnumerable<string> tags = null, long? timeStamp = null){
             Validator.ValidateKey(key);
-            if(ManifestContainsItem(key, out ManifestItemMin? manifestItem)){
-                Update(new KeyValuePair<int, IManifestCSVFile>(manifestItem.Value.Manifest, _manFileWRs[manifestItem.Value.Manifest]), key, stream, tags, timeStamp);
-                return;
+            if(ManifestContainsItemToDelete(key, out ManifestItemMinToDel? manifestItem)){
+                _manFileWRs[manifestItem.Value.Manifest].Remove(manifestItem.Value.DelPosition);
             }
             Insert(key, stream, tags, timeStamp);
         }
@@ -119,6 +101,33 @@ namespace MODB.FlatFileDB{
                 .DefaultIfEmpty()
                 .SelectMany(x => x)
                 .ToPagedList(page, pageSize);
+        }
+
+        public void Clone(IKeyValDB cloneDb)
+        {
+            foreach(IFileWR man in _manFileWRs.Values){
+                using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(man.FileInfo.FullName, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false})){
+                    while(csv.Read())
+                    {
+                        if(csv.GetInt16(5) == 0)
+                            cloneDb.Set(csv.GetString(0), _flatFileWR.Read(csv.GetInt64(1), csv.GetInt32(2)), csv.GetString(4).Split(' '), csv.GetInt64(3));
+                    }
+                }
+            }
+        }
+
+        public void Rename(string name)
+        {
+            foreach(var file in Directory.GetFiles(_path)){
+                var destination = file.Replace(this._name, name);
+                new FileInfo(destination).Directory.Create();
+                File.Move(file, destination);
+            }
+        }
+
+        public void Delete()
+        {
+            Directory.Delete(this._path, true);
         }
     }
 }
