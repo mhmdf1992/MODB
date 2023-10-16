@@ -145,7 +145,7 @@ namespace MODB.Client{
                 {"pageSize", $"{pageSize}"}
             };
             if(tags != null && tags.Any())
-                queryStringParams.Add("tags", string.Join(',', tags));
+                queryStringParams.Add("tags", string.Join(",", tags));
             if(from != null) 
                 queryStringParams.Add("from", $"{from}");
             if(to != null)
@@ -204,7 +204,7 @@ namespace MODB.Client{
                 {"key", key}
             };
             if(tags != null && tags.Any())
-                queryStringParams.Add("tags", string.Join(',', tags));
+                queryStringParams.Add("tags", string.Join(",", tags));
             if(timestamp != null) 
                 queryStringParams.Add("timestamp", $"{timestamp}");
             if(createDb != null)
@@ -235,7 +235,7 @@ namespace MODB.Client{
                 {"pageSize", $"{pageSize}"}
             };
             if(tags != null && tags.Any())
-                queryStringParams.Add("tags", string.Join(',', tags));
+                queryStringParams.Add("tags", string.Join(",", tags));
             if(from != null) 
                 queryStringParams.Add("from", $"{from}");
             if(to != null)
@@ -286,7 +286,7 @@ namespace MODB.Client{
                 {"pageSize", $"{pageSize}"}
             };
             if(tags != null && tags.Any())
-                queryStringParams.Add("tags", string.Join(',', tags));
+                queryStringParams.Add("tags", string.Join(",", tags));
             if(from != null) 
                 queryStringParams.Add("from", $"{from}");
             if(to != null)

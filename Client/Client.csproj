@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFramework>netStandard2.1</TargetFramework>
+    <TargetFramework>netStandard2.0</TargetFramework>
   </PropertyGroup>
 
 </Project>
