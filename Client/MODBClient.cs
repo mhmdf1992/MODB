@@ -94,7 +94,7 @@ namespace MODB.Client{
                 RequestUri = new Uri($"{_httpClient.Host}/{Endpoint($"databases/{db}/keys/{key}")}"),
                 Method = HttpMethod.Get
             };
-            request.Headers.Add("response-type","json");
+            request.Headers.Add("result-type","json");
             try{
                 return await _httpClient.SendAsync(
                     request: request,
@@ -245,7 +245,7 @@ namespace MODB.Client{
                 RequestUri = new Uri($"{_httpClient.Host}/{Endpoint($"databases/{db}/values")}{(queryStringParams == null || !queryStringParams.Any() ? "" : $"?{string.Join("&", queryStringParams.Select(parm => $"{parm.Key}={parm.Value}"))}")}"),
                 Method = HttpMethod.Get
             };
-            request.Headers.Add("response-type","json");
+            request.Headers.Add("result-type","json");
             try{
                 return await _httpClient.SendAsync(
                     request: request,
