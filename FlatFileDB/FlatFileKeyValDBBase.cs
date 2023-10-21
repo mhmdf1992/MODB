@@ -1,4 +1,5 @@
 using MODB.ConcurrentFile;
+using Sylvan;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -20,9 +21,11 @@ namespace MODB.FlatFileDB{
         public DBConfig Config => _dbConfig;
         public DBStatus Status => _status;
         public string LastClean => _flatFileWR.Size == 0 ? "" : _flatFileWR.FileInfo.CreationTimeUtc.ToString();
+        protected StringPool _stringPool;
         public FlatFileKeyValDBBase(string path, int numberOfManifestFiles = 10, DBStatus status = DBStatus.READY){
             _path = path;
             _status = status;
+            _stringPool = new StringPool();
             try{
                 if(numberOfManifestFiles <= 0)
                     throw new ArgumentException(paramName: nameof(numberOfManifestFiles), message: "Value should be greater than zero");
@@ -41,14 +44,14 @@ namespace MODB.FlatFileDB{
             var files = Directory.GetFiles(_path, "*.man");
             if(files == null || !files.Any()){
                 for(int i = 1; i <= numberOfManFiles; i ++){
-                    _manFileWRs.Add(i, new ManifestFile(Path.Combine(_path, $"{name}({i}).man"), i));
+                    _manFileWRs.Add(i, new ManifestFile(Path.Combine(_path, $"{name}({i}).man"), i, _stringPool));
                 }
                 return;
             }
             foreach(var file in files){
                 var regResult = System.Text.RegularExpressions.Regex.Match(Path.GetFileName(file), @"(?<=\()\d+(?=\))");
                 var number = Helper.ConvertToInt(regResult.Value.ToArray());
-                _manFileWRs.Add(number, new ManifestFile(file, number));
+                _manFileWRs.Add(number, new ManifestFile(file, number, _stringPool));
             }
         }
 

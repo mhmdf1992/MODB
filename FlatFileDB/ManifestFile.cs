@@ -1,4 +1,5 @@
 using MODB.ConcurrentFile;
+using Sylvan;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,10 +9,11 @@ namespace MODB.FlatFileDB{
     public class ManifestFile : ConcurrentFileWR, IFileWR, IManifestCSVFile
     {
         protected int _key; public int Key => _key;
+        protected StringPool _stringPool;
 
         public IEnumerable<IEnumerable<string>> GetTags(string text = null){
 
-            using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false})){
+            using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false, StringFactory = _stringPool.GetString})){
                 while(csv.Read())
                 {
                     if(csv.GetInt16(5) == 0)
@@ -22,7 +24,7 @@ namespace MODB.FlatFileDB{
 
         public ManifestItemMin? Find(string key, System.Threading.CancellationTokenSource cs){
 
-            using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false})){
+            using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false, StringFactory = _stringPool.GetString})){
                 while(csv.Read() && ! cs.IsCancellationRequested)
                 {
                     if(csv.GetInt16(5) == 0 && csv.GetString(0) == key){
@@ -30,13 +32,13 @@ namespace MODB.FlatFileDB{
                         return new ManifestItemMin(csv.GetInt64(1), csv.GetInt32(2), _key);
                     }
                 }
-                return default(ManifestItemMin?);
             }
+            return default;
         }
 
         public ManifestItemMinToDel? FindToDelete(string key, System.Threading.CancellationTokenSource cs){
 
-            using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false})){
+            using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false, StringFactory = _stringPool.GetString})){
                 long offset = 0;
                 while(csv.Read() && ! cs.IsCancellationRequested)
                 {
@@ -46,12 +48,12 @@ namespace MODB.FlatFileDB{
                         return new ManifestItemMinToDel(csv.GetInt64(1), csv.GetInt32(2), _key, offset - Environment.NewLine.Length);
                     }
                 }
-                return default(ManifestItemMinToDel?);
+                return default;
             }
         }
 
         public IEnumerable<ManifestItemMin> FilterMin(IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null){    
-            using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false})){
+            using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false, StringFactory = _stringPool.GetString})){
                 while(csv.Read())
                 {
                     var timeStamp = csv.GetInt64(3);
@@ -62,7 +64,7 @@ namespace MODB.FlatFileDB{
         }
 
         public IEnumerable<ManifestItem> Filter(IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null){    
-            using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false})){
+            using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false, StringFactory = _stringPool.GetString})){
                 while(csv.Read())
                 {
                     var timeStamp = csv.GetInt64(3);
@@ -74,7 +76,7 @@ namespace MODB.FlatFileDB{
         }
 
         public IEnumerable<string> GetKeys(){    
-            using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false})){
+            using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false, StringFactory = _stringPool.GetString})){
                 while(csv.Read())
                 {
                     if(csv.GetInt16(5) == 0)
@@ -84,7 +86,7 @@ namespace MODB.FlatFileDB{
         }
 
         public IEnumerable<string> GetKeys(IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null){    
-            using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false})){
+            using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false, StringFactory = _stringPool.GetString})){
                 while(csv.Read())
                 {
                     var timeStamp = csv.GetInt64(3);
@@ -95,7 +97,7 @@ namespace MODB.FlatFileDB{
         }
 
         public IEnumerable<ManifestItem> GetKeysOrdered(IEnumerable<string> tags = null, long? timeStampFrom = null, long? timeStampTo = null){    
-            using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false})){
+            using(var csv = Sylvan.Data.Csv.CsvDataReader.Create(_path, new Sylvan.Data.Csv.CsvDataReaderOptions(){ HasHeaders = false, StringFactory = _stringPool.GetString})){
                 while(csv.Read())
                 {
                     var timeStamp = csv.GetInt64(3);
@@ -110,9 +112,10 @@ namespace MODB.FlatFileDB{
             Write("1", delPosition);
         }
 
-        public ManifestFile(string path, int key) : base(path)
+        public ManifestFile(string path, int key, StringPool stringPool) : base(path)
         {
             _key = key;
+            _stringPool = stringPool;
             if(!File.Exists(_path))
                 using(var fs = File.Create(_path)){
                 }
