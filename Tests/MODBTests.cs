@@ -10,6 +10,44 @@ public class MODBTests
     }
 
     [Fact]
+    public void SetThenDeleteThenSet_CaseSizeOfKeyAndValueEqualsDeletedThenDBSizeEqualTest()
+    {
+        var db1 = new DB(Path.Combine(Directory.GetCurrentDirectory(), "test_del_db"));
+        for(int i = 1; i <= 100; i ++){
+            db1.Set($"test{i}", "ndfiuhnsiufbniudbnf");
+        }
+        var baseSize = db1.Size;
+        for(int i = 1; i <= 100; i ++){
+            db1.Delete($"test{i}");
+        }
+        Assert.Equal(baseSize, db1.Size - (20*100));
+        for(int i = 1; i <= 100; i ++){
+            db1.Set($"test{i}", "ndfiuhnsiufbniudbnf");    
+        }
+        Assert.Equal(baseSize, db1.Size);
+        db1.Clear();
+    }
+
+    [Fact]
+    public void SetThenDeleteThenSet_CaseInputSizeOfKeyAndValueLessThanDeletedThenDBSizeEqualTest()
+    {
+        var db1 = new DB(Path.Combine(Directory.GetCurrentDirectory(), "test_del_db"));
+        for(int i = 1; i <= 100; i ++){
+            db1.Set($"test{i}", "ndfiuhnsiufbniudbnf");
+        }
+        var baseSize = db1.Size;
+        for(int i = 1; i <= 100; i ++){
+            db1.Delete($"test{i}");
+        }
+        Assert.Equal(baseSize, db1.Size - (20*100));
+        for(int i = 1; i <= 100; i ++){
+            db1.Set($"test{i}", "ndfiuhnsiuf");    
+        }
+        Assert.Equal(baseSize, db1.Size);
+        db1.Clear();
+    }
+
+    [Fact]
     public void SetThenAnyReturnTrue_ClearThenAnyFalseTest()
     {
         _db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "test_db"));
