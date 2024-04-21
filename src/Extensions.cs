@@ -25,5 +25,13 @@ namespace MO.MODB{
                 TotalPages = data.TotalPages
             };
         }
+
+        public static bool CompareBytes(this byte[] haystak, byte[] needle, int offset){
+            for(int i = 0; i < needle.Length; i ++){
+                if(needle[i] != haystak[offset + i])
+                    return false;
+            }
+            return true;
+        }
     }
 }

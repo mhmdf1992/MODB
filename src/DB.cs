@@ -9,15 +9,15 @@ namespace MO.MODB{
     public class DB : IDB
     {
         protected string _path;
-        protected IFileWR _flatFileWR;
+        protected IDataWR _dataWR;
         protected Dictionary<string, IIndexBook> _indexBooks;
         protected string _name;
         public string Name => _name;
-        public long Size => _flatFileWR.Size + _indexBooks.Values.Sum(x => x.Size);
+        public long Size => _dataWR.Size + _indexBooks.Values.Sum(x => x.Size);
         public DB(string path){
             _path = path;
             _name = Path.GetFileName(_path);
-            _flatFileWR = new FileWR(Path.Combine(path, $"{_name}.dat"));
+            _dataWR = new DataWR(Path.Combine(path, $"{_name}.dat"));
             _indexBooks = new Dictionary<string, IIndexBook>();
             LoadIndexes();
         }
@@ -40,17 +40,17 @@ namespace MO.MODB{
 
         protected void Insert(string key, string value, params KeyValuePair<string, string>[] index){
             var keyIndexBook = _indexBooks["key"];
-            var position = _flatFileWR.Append(value);
+            var position = _dataWR.Add(value);
             if(position == -1)
                 return;
-            var length = _flatFileWR.Encoding.GetByteCount(value);
+            var length = _dataWR.Encoding.GetByteCount(value);
             keyIndexBook.Add(key, position, length);
         }
 
         protected void Insert(string key, Stream stream, params KeyValuePair<string, string>[] index){
             var keyIndexBook = _indexBooks["key"];
             var length = stream.Length;
-            var position = _flatFileWR.AppendStream(stream);
+            var position = _dataWR.Add(stream);
             if(position == -1)
                 return;
             keyIndexBook.Add(key, position, (int)length);
@@ -64,18 +64,14 @@ namespace MO.MODB{
             var keyBook = _indexBooks["key"];
             Validator.ValidateKey(key, keyBook.KeyMaxBytes);
             var indexItem = ((IKeyValueIndexBook)keyBook).Find(key) ?? throw new Exceptions.KeyNotFoundException(key);
-            return _flatFileWR.Read(indexItem.ValuePosition, indexItem.ValueLength);
+            return _dataWR.Get(indexItem.ValuePosition, indexItem.ValueLength);
         }
 
         public Stream GetStream(string key){
             var keyBook = _indexBooks["key"];
             Validator.ValidateKey(key, keyBook.KeyMaxBytes);
             var indexItem = ((IKeyValueIndexBook)keyBook).Find(key) ?? throw new Exceptions.KeyNotFoundException(key);
-            using var stream = _flatFileWR.GetStreamForRead(indexItem.ValuePosition);
-            var buffer = new byte[indexItem.ValueLength];
-            stream.Read(buffer, 0, indexItem.ValueLength);
-            var res = new MemoryStream(buffer);
-            return res;
+            return _dataWR.GetStream(indexItem.ValuePosition, indexItem.ValueLength);
         }
 
         public bool Exists(string key){
@@ -90,7 +86,7 @@ namespace MO.MODB{
             Validator.ValidateKey(key, keyBook.KeyMaxBytes);
             var indexItem = ((IKeyValueIndexBook)keyBook).DeleteIfExists(key);
             if(indexItem != null && indexItem.Deleted)
-                _flatFileWR.WriteBytes(new byte[indexItem.ValueLength], indexItem.ValuePosition);
+                _dataWR.Erase(indexItem.ValuePosition, indexItem.ValueLength);
             Insert(key, value, index);
         }
 
@@ -100,7 +96,7 @@ namespace MO.MODB{
             Validator.ValidateKey(key, keyBook.KeyMaxBytes);
             var indexItem = ((IKeyValueIndexBook)keyBook).DeleteIfExists(key);
             if(indexItem != null && indexItem.Deleted)
-                _flatFileWR.WriteBytes(new byte[indexItem.ValueLength], indexItem.ValuePosition);
+                _dataWR.Erase(indexItem.ValuePosition, indexItem.ValueLength);
             Insert(key, stream, index);
         }
 
@@ -109,7 +105,7 @@ namespace MO.MODB{
             Validator.ValidateKey(key, keyBook.KeyMaxBytes);
             var indexItem = ((IKeyValueIndexBook)keyBook).Delete(key);
             if(indexItem.Deleted)
-                _flatFileWR.WriteBytes(new byte[indexItem.ValueLength], indexItem.ValuePosition);
+                _dataWR.Erase(indexItem.ValuePosition, indexItem.ValueLength);
         }
 
         public void InsertHash(Dictionary<string, string> hash){
@@ -117,7 +113,7 @@ namespace MO.MODB{
             foreach(var pair in hash){
                 Validator.ValidateKey(pair.Key, keyBook.KeyMaxBytes);
             }
-            var result = _flatFileWR.AppendList(hash.ToArray()).ToArray();
+            var result = _dataWR.FlatFileWR.AppendList(hash.ToArray()).ToArray();
             var indexHash = result.Select(pair => new {keyBytesLength = Encoding.UTF8.GetByteCount(pair.Key), indexItemBytes = keyBook.GetBytes(pair.Key, pair.Value.Position, pair.Value.Length)})
                 .GroupBy(obj => obj.keyBytesLength,
                         obj => obj.indexItemBytes,
@@ -125,7 +121,7 @@ namespace MO.MODB{
             keyBook.InsertHash(indexHash);
         }
 
-        public PagedList<string> All(int page = 1, int pageSize = 10) => ((IKeyValueIndexBook)_indexBooks["key"]).All().ToPagedList(page, pageSize).Read(_flatFileWR);
+        public PagedList<string> All(int page = 1, int pageSize = 10) => ((IKeyValueIndexBook)_indexBooks["key"]).All().ToPagedList(page, pageSize).Read(_dataWR.FlatFileWR);
 
         public void Clear()
         {

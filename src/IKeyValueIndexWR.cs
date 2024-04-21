@@ -4,9 +4,9 @@ namespace MO.MODB{
     public interface IKeyValueIndexWR{
         bool Any();
         int Count();
-        bool Exists(byte[] pattern);
-        IndexItemToRead Find(byte[] pattern);
-        IndexItemToDelete Delete(byte[] pattern);
+        bool Exists(byte[] key);
+        IndexItemToRead Find(byte[] key);
+        IndexItemToDelete Delete(byte[] key);
         IEnumerable<IndexItemToRead> All();
     }
 }

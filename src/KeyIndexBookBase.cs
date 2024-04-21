@@ -15,7 +15,7 @@ namespace MO.MODB{
         protected const int LENGTH_BYTES = 4;
         protected const int KEY_MAX_BYTES = 64;
         public int KeyMaxBytes => KEY_MAX_BYTES;
-        public long Size => _indexWRs.Values.Sum(x => ((IFileWR)x).Size);
+        public long Size => _indexWRs.Values.Sum(x => x.Size);
         protected Dictionary<int, IIndexWR> _indexWRs;
         public KeyIndexBookBase(string indexName, string path){
             _indexName = indexName;
@@ -108,7 +108,7 @@ namespace MO.MODB{
                                 path: Path.Combine(_path, $"{pair.Key}.index")
                                 ) as IIndexWR);
                 }
-                ((IFileWR)_indexWRs[pair.Key]).AppendBytes(pair.Value);
+                _indexWRs[pair.Key].AddRange(pair.Value);
             }
         }
 
@@ -116,7 +116,7 @@ namespace MO.MODB{
             if(!_indexWRs.Any())
                 return;
             foreach(var wr in _indexWRs.Values){
-                ((IFileWR)wr).Clear();
+                wr.Clear();
             }
         }
     }
