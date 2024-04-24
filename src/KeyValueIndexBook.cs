@@ -1,7 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using MO.MOFile;
 
 namespace MO.MODB{
@@ -61,10 +60,10 @@ namespace MO.MODB{
             return ((IKeyValueIndexWR)_indexWRs[pattern.Length]).Delete(pattern);
         }
 
-        public IEnumerable<IndexItemToRead> All()
+        public IEnumerable<ReadObject> All()
         {
             if(!_indexWRs.Any())
-                return Enumerable.Empty<IndexItemToRead>();
+                return Enumerable.Empty<ReadObject>();
             return _indexWRs.Values.Select(x => ((IKeyValueIndexWR)x).All()).SelectMany(x => x);
         }
     }

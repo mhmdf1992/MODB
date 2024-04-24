@@ -46,12 +46,8 @@ namespace MO.MODB{
                             countEmpty += 1;
                             continue;
                         }
-                        var delPositionBytes = new byte[8];
-                        Buffer.BlockCopy(buffer, i, delPositionBytes, 0, delPositionBytes.Length);
-                        var delLenBytes = new byte[4];
-                        Buffer.BlockCopy(buffer, i + 8, delLenBytes, 0, delLenBytes.Length);
-                        var delLength = BitConverter.ToInt32(delLenBytes);
-                        var delPosition = BitConverter.ToInt64(delPositionBytes);
+                        var delLength = BitConverter.ToInt32(buffer, i + 8);
+                        var delPosition = BitConverter.ToInt64(buffer, i);
                         var diff = delLength - bytes.Length;
                         if(diff == 0){
                             res = new Tuple<int, long, long>(diff, delPosition, currentPosition + i);

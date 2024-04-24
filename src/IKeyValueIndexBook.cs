@@ -1,9 +1,10 @@
+using System;
 using System.Collections.Generic;
 using MO.MODB;
 
 namespace MO.MOFile{
     public interface IKeyValueIndexBook{
-        IEnumerable<IndexItemToRead> All();
+        IEnumerable<ReadObject> All();
         bool Any();
         int Count();
         bool Exists(string key);

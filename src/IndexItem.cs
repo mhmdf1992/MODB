@@ -1,3 +1,5 @@
+using MO.MOFile;
+
 namespace MO.MODB{
     public class IndexItem{
         long _valuePosition; public long ValuePosition => _valuePosition;
@@ -26,6 +28,15 @@ namespace MO.MODB{
         bool _deleted; public bool Deleted => _deleted;
         public IndexItemToDelete(bool deleted, string index, long indexPosition, long valuePosition, int valueLength):base(index, indexPosition, valuePosition, valueLength){
             _deleted = deleted;
+        }
+    }
+
+    public class ReadObjectListItem : ReadObject
+    {
+        protected int _number; public int Number => _number;
+        public ReadObjectListItem(int number, long pos, int len) : base(pos, len)
+        {
+            _number = number;
         }
     }
 }

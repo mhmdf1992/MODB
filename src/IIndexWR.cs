@@ -4,6 +4,7 @@ namespace MO.MODB{
         IndexItemToDelete DeleteByPosition(byte[] position);
         void AddRange(byte[][] range);
         void Clear();
+        int CountDeleted();
         long Size {get;}
     }
 }

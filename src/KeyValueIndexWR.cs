@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MO.MOFile;
 
 namespace MO.MODB{
     public class KeyValueIndexWR : KeyIndexWRBase, IIndexWR, IKeyValueIndexWR
@@ -9,27 +10,7 @@ namespace MO.MODB{
         {
         }
 
-        public bool Any()
-        {
-            using var fstream = _indexFileWR.GetStreamForRead();
-            long length = fstream.Length;
-            if(length == 0)
-                return false;
-            var indexItemFullBytes = TotalIndexItemBytes;
-            var buffer = new byte[_numberOfKeyBytes];
-            var pattern = new byte[_numberOfKeyBytes];
-            long currentPosition = 0;
-            while(currentPosition < length){
-                var read = fstream.Read(buffer, 0, buffer.Length);
-                for(int i = 0; i < read; i += indexItemFullBytes){
-                    if(!buffer.CompareBytes(pattern, i)){
-                        return true;
-                    }
-                }
-                currentPosition += buffer.Length;
-            }
-            return false;
-        }
+        public bool Any() => Count() > 0;
 
         public int Count()
         {
@@ -38,20 +19,7 @@ namespace MO.MODB{
             if(length == 0)
                 return 0;
             int indexItemFullBytes = TotalIndexItemBytes;
-            var buffer = new byte[indexItemFullBytes * 1000];
-            var pattern = new byte[_numberOfKeyBytes];
-            long currentPosition = 0;
-            var counter = 0;
-            while(currentPosition < length){
-                var read = fstream.Read(buffer, 0, buffer.Length);
-                for(int i = 0; i < read; i += indexItemFullBytes){
-                    if(!buffer.CompareBytes(pattern, i)){
-                        counter ++;
-                    }
-                }
-                currentPosition += buffer.Length;
-            }
-            return counter;
+            return (int)(length / indexItemFullBytes) - CountDeleted();
         }
 
         public bool Exists(byte[] key)
@@ -88,11 +56,7 @@ namespace MO.MODB{
                 var read = fstream.Read(buffer, 0, buffer.Length);
                 for(int i = 0; i < read; i += indexItemFullBytes){
                     if(buffer.CompareBytes(key, i)){
-                        var positionBytes = new byte[_numberOfPositionBytes];
-                        var lengthBytes = new byte[_numberOfLengthBytes];
-                        Buffer.BlockCopy(buffer, i + key.Length, positionBytes, 0, positionBytes.Length);
-                        Buffer.BlockCopy(buffer, i + key.Length + positionBytes.Length, lengthBytes, 0, lengthBytes.Length);
-                        return new IndexItemToRead(_indexName, currentPosition + i, BitConverter.ToInt64(positionBytes), BitConverter.ToInt32(lengthBytes));
+                        return new IndexItemToRead(_indexName, currentPosition + i, BitConverter.ToInt64(buffer, i + key.Length), BitConverter.ToInt32(buffer, i + key.Length + _numberOfPositionBytes));
                     }
                 }
                 currentPosition += buffer.Length;
@@ -113,13 +77,9 @@ namespace MO.MODB{
                 var read = fstream.Read(buffer, 0, buffer.Length);
                 for(int i = 0; i < read; i += indexItemFullBytes){
                     if(buffer.CompareBytes(key, i)){
-                        var positionBytes = new byte[_numberOfPositionBytes];
-                        var lengthBytes = new byte[_numberOfLengthBytes];
-                        Buffer.BlockCopy(buffer, i + key.Length, positionBytes, 0, positionBytes.Length);
-                        Buffer.BlockCopy(buffer, i + key.Length + positionBytes.Length, lengthBytes, 0, lengthBytes.Length);
                         var delPos = _indexFileWR.WriteBytes(new byte[indexItemFullBytes], currentPosition + i);
                         ((MOFile.IStack)_delIndexFileWR).Push(BitConverter.GetBytes(currentPosition + i));
-                        return new IndexItemToDelete(delPos > -1, _indexName, currentPosition + i, BitConverter.ToInt64(positionBytes), BitConverter.ToInt32(lengthBytes));
+                        return new IndexItemToDelete(delPos > -1, _indexName, currentPosition + i, BitConverter.ToInt64(buffer, i + key.Length), BitConverter.ToInt32(buffer, i + key.Length + _numberOfPositionBytes));
                     }
                 }
                 currentPosition += buffer.Length;
@@ -127,7 +87,7 @@ namespace MO.MODB{
             return default;
         }
 
-        public IEnumerable<IndexItemToRead> All()
+        public IEnumerable<ReadObject> All()
         {
             using var fstream = _indexFileWR.GetStreamForRead();
             long length = fstream.Length;
@@ -141,11 +101,7 @@ namespace MO.MODB{
                 var read = fstream.Read(buffer, 0, buffer.Length);
                 for(int i = 0; i < read; i += indexItemFullBytes){
                     if(!buffer.CompareBytes(pattern, i)){
-                        var positionBytes = new byte[_numberOfPositionBytes];
-                        var lengthBytes = new byte[_numberOfLengthBytes];
-                        Buffer.BlockCopy(buffer, i + pattern.Length, positionBytes, 0, positionBytes.Length);
-                        Buffer.BlockCopy(buffer, i + pattern.Length + positionBytes.Length, lengthBytes, 0, lengthBytes.Length);
-                        yield return new IndexItemToRead(_indexName, currentPosition + (i *indexItemFullBytes), BitConverter.ToInt64(positionBytes), BitConverter.ToInt32(lengthBytes));
+                        yield return new ReadObject(BitConverter.ToInt64(buffer, i + pattern.Length), BitConverter.ToInt32(buffer, i + pattern.Length + _numberOfPositionBytes));
                     }
                 }
                 currentPosition += buffer.Length;

@@ -57,29 +57,37 @@ namespace MO.MODB{
 
         public IndexItemToDelete DeleteByPosition(byte[] position)
         {
-            using var fstream = _indexFileWR.GetStreamForRead();
+            return _indexFileWR.OpenStreamForWrite(fstream => {
+                long length = fstream.Length;
+                if(length == 0)
+                    return default;
+                int indexItemFullBytes = TotalIndexItemBytes;
+                var buffer = new byte[indexItemFullBytes * 1000];
+                long currentPosition = 0;
+                while(currentPosition < length){
+                    var read = fstream.Read(buffer, 0, buffer.Length);
+                    for(int i = 0; i < read; i += indexItemFullBytes){
+                        if(buffer.CompareBytes(position, i + _numberOfKeyBytes)){
+                            fstream.Seek(currentPosition + i, SeekOrigin.Begin);
+                            fstream.Write(new byte[indexItemFullBytes], 0, indexItemFullBytes);
+                            ((MOFile.IStack)_delIndexFileWR).Push(BitConverter.GetBytes(currentPosition + i));
+                            return new IndexItemToDelete(currentPosition + i > -1, _indexName, currentPosition + i , BitConverter.ToInt64(buffer, i + _numberOfKeyBytes), BitConverter.ToInt32(buffer, i + _numberOfKeyBytes + _numberOfPositionBytes));
+                        }
+                    }
+                    currentPosition += buffer.Length;
+                }
+                return default;
+            });
+        }
+
+        public int CountDeleted()
+        {
+            using var fstream = _delIndexFileWR.GetStreamForRead();
             long length = fstream.Length;
             if(length == 0)
-                return default;
+                return 0;
             int indexItemFullBytes = TotalIndexItemBytes;
-            var buffer = new byte[indexItemFullBytes * 1000];
-            long currentPosition = 0;
-            while(currentPosition < length){
-                var read = fstream.Read(buffer, 0, buffer.Length);
-                for(int i = 0; i < read; i += indexItemFullBytes){
-                    if(buffer.CompareBytes(position, i + _numberOfKeyBytes)){
-                        var positionBytes = new byte[_numberOfPositionBytes];
-                        var lengthBytes = new byte[_numberOfLengthBytes];
-                        Buffer.BlockCopy(buffer, i + _numberOfKeyBytes, positionBytes, 0, positionBytes.Length);
-                        Buffer.BlockCopy(buffer, i + _numberOfKeyBytes + positionBytes.Length, lengthBytes, 0, lengthBytes.Length);
-                        var delPos = _indexFileWR.WriteBytes(new byte[indexItemFullBytes], currentPosition + i);
-                        ((MOFile.IStack)_delIndexFileWR).Push(BitConverter.GetBytes(currentPosition + i));
-                        return new IndexItemToDelete(delPos > -1, _indexName, currentPosition + i , BitConverter.ToInt64(positionBytes), BitConverter.ToInt32(lengthBytes));
-                    }
-                }
-                currentPosition += buffer.Length;
-            }
-            return default;
+            return (int)(length / _numberOfPositionBytes);
         }
     }
 }

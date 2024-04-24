@@ -5,20 +5,20 @@ using MO.MOFile;
 
 namespace MO.MODB{
     public static class Extensions{
-        public static PagedList<IndexItem> ToPagedList(this IEnumerable<IndexItem> data, int page, int pageSize){
-            var total = data.Count();
-            return new PagedList<IndexItem>(){
+        public static PagedList<ReadObject> ToPagedList(this IEnumerable<ReadObject> data, int page, int pageSize, int? total = null){
+            total ??= data.Count();
+            return new PagedList<ReadObject>(){
                 Items = data.Skip((page * pageSize) - pageSize).Take(pageSize),
                 Page = page,
                 PageSize = pageSize,
-                TotalItems = total,
+                TotalItems = total.Value,
                 TotalPages = (int)Math.Ceiling((double)total / pageSize)
             };
         }
 
-        public static PagedList<string> Read(this PagedList<IndexItem> data, IFileWR flatFileWR){
+        public static PagedList<string> Read(this PagedList<ReadObject> data, IFileWR flatFileWR){
             return new PagedList<string>(){
-                Items = flatFileWR.Read(data.Items.Select(x => new ReadObject(x.ValuePosition, x.ValueLength))),
+                Items = flatFileWR.Read(data.Items),
                 Page = data.Page,
                 PageSize = data.PageSize,
                 TotalItems = data.TotalItems,

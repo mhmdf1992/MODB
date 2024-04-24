@@ -121,7 +121,10 @@ namespace MO.MODB{
             keyBook.InsertHash(indexHash);
         }
 
-        public PagedList<string> All(int page = 1, int pageSize = 10) => ((IKeyValueIndexBook)_indexBooks["key"]).All().ToPagedList(page, pageSize).Read(_dataWR.FlatFileWR);
+        public PagedList<string> All(int page = 1, int pageSize = 10){
+            var keyBook = (IKeyValueIndexBook)_indexBooks["key"];
+            return keyBook.All().ToPagedList(page, pageSize, keyBook.Count()).Read(_dataWR.FlatFileWR);
+        }
 
         public void Clear()
         {
