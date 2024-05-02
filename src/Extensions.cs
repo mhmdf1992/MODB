@@ -1,18 +1,14 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using MO.MOFile;
 
 namespace MO.MODB{
     public static class Extensions{
-        public static PagedList<ReadObject> ToPagedList(this IEnumerable<ReadObject> data, int page, int pageSize, int? total = null){
-            total ??= data.Count();
+        public static PagedList<ReadObject> ToPagedList(this IEnumerable<ReadObject> data, int page, int pageSize){
             return new PagedList<ReadObject>(){
                 Items = data.Skip((page * pageSize) - pageSize).Take(pageSize),
                 Page = page,
-                PageSize = pageSize,
-                TotalItems = total.Value,
-                TotalPages = (int)Math.Ceiling((double)total / pageSize)
+                PageSize = pageSize
             };
         }
 
@@ -21,8 +17,6 @@ namespace MO.MODB{
                 Items = flatFileWR.Read(data.Items),
                 Page = data.Page,
                 PageSize = data.PageSize,
-                TotalItems = data.TotalItems,
-                TotalPages = data.TotalPages
             };
         }
 
@@ -32,6 +26,17 @@ namespace MO.MODB{
                     return false;
             }
             return true;
+        }
+
+        public static bool ContainBytes(this byte[] haystak, byte[] needle, int offset, int length){
+            var size = offset + length;
+            for(int i = offset; i < size; i ++ ){
+                if(size - i < needle.Length)
+                    return false;
+                if(haystak.CompareBytes(needle, i))
+                    return true;
+            }
+            return false;
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using MO.MOFile;
@@ -88,6 +89,66 @@ namespace MO.MODB{
                 return 0;
             int indexItemFullBytes = TotalIndexItemBytes;
             return (int)(length / _numberOfPositionBytes);
+        }
+
+        public IEnumerable<ReadObject> Filter(Func<byte[], int, int, bool> predicate){
+            using var fstream = _indexFileWR.GetStreamForRead();
+            long length = fstream.Length;
+            if(length == 0)
+                yield break;
+            int indexItemFullBytes = TotalIndexItemBytes;
+            var buffer = new byte[indexItemFullBytes * 1000];
+            long currentPosition = 0;
+            while(currentPosition < length){
+                var read = fstream.Read(buffer, 0, buffer.Length);
+                for(int i = 0; i < read; i += indexItemFullBytes){
+                    if(predicate(buffer, i, _numberOfKeyBytes)){
+                        yield return new ReadObject(BitConverter.ToInt64(buffer, i + _numberOfKeyBytes), BitConverter.ToInt32(buffer, i + _numberOfKeyBytes + _numberOfPositionBytes));
+                    }
+                }
+                currentPosition += buffer.Length;
+            }
+        }
+
+        public int Count(Func<byte[], int, int, bool> predicate){
+            using var fstream = _indexFileWR.GetStreamForRead();
+            long length = fstream.Length;
+            if(length == 0)
+                return 0;
+            int indexItemFullBytes = TotalIndexItemBytes;
+            var buffer = new byte[indexItemFullBytes * 1000];
+            long currentPosition = 0;
+            int counter = 0;
+            while(currentPosition < length){
+                var read = fstream.Read(buffer, 0, buffer.Length);
+                for(int i = 0; i < read; i += indexItemFullBytes){
+                    if(predicate(buffer, i, _numberOfKeyBytes)){
+                        counter +=1;
+                    }
+                }
+                currentPosition += buffer.Length;
+            }
+            return counter;
+        }
+
+        public bool Any(Func<byte[], int, int, bool> predicate){
+            using var fstream = _indexFileWR.GetStreamForRead();
+            long length = fstream.Length;
+            if(length == 0)
+                return false;
+            int indexItemFullBytes = TotalIndexItemBytes;
+            var buffer = new byte[indexItemFullBytes * 1000];
+            long currentPosition = 0;
+            while(currentPosition < length){
+                var read = fstream.Read(buffer, 0, buffer.Length);
+                for(int i = 0; i < read; i += indexItemFullBytes){
+                    if(predicate(buffer, i, _numberOfKeyBytes)){
+                        return true;
+                    }
+                }
+                currentPosition += buffer.Length;
+            }
+            return false;
         }
     }
 }

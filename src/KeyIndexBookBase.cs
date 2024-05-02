@@ -119,5 +119,66 @@ namespace MO.MODB{
                 wr.Clear();
             }
         }
+
+        public PagedList<ReadObject> Filter(string pattern, CompareOperations operation, int page = 1, int pageSize = 10){
+            if(!_indexWRs.Any())
+                return Enumerable.Empty<ReadObject>().ToPagedList(page, pageSize);
+            var patternBytes = _encoding.GetBytes(pattern);
+            if(operation.Equals(CompareOperations.Equal)){
+                if(!_indexWRs.ContainsKey(patternBytes.Length))
+                    return Enumerable.Empty<ReadObject>().ToPagedList(page, pageSize);
+                var res =  _indexWRs[patternBytes.Length].Filter((haystack, offset, length) => haystack.CompareBytes(patternBytes, offset));
+                return res.ToPagedList(page, pageSize);
+            }
+            var targetWR = _indexWRs.Where(pair => pair.Key >= patternBytes.Length);
+            if(targetWR == null || !targetWR.Any())
+                return Enumerable.Empty<ReadObject>().ToPagedList(page, pageSize);
+            var result = targetWR.Select(x => x.Value.Filter((haystack, offset, length) => haystack.ContainBytes(patternBytes, offset, length)));
+            return result.SelectMany(x => x).ToPagedList(page, pageSize);
+        }
+
+        public int Count(string pattern, CompareOperations operation){
+            if(!_indexWRs.Any())
+                return 0;
+            var patternBytes = _encoding.GetBytes(pattern);
+            if(operation.Equals(CompareOperations.Equal)){
+                if(!_indexWRs.ContainsKey(patternBytes.Length))
+                    return 0;
+                return _indexWRs[patternBytes.Length].Count((haystack, offset, length) => haystack.CompareBytes(patternBytes, offset));
+            }
+            var targetWR = _indexWRs.Where(pair => pair.Key >= patternBytes.Length);
+            if(targetWR == null || !targetWR.Any())
+                return 0;
+            return targetWR.Select(x => x.Value.Count((haystack, offset, length) => haystack.ContainBytes(patternBytes, offset, length))).Sum(x => x);
+        }
+
+        public bool Any(string pattern, CompareOperations operation){
+            if(!_indexWRs.Any())
+                return false;
+            var patternBytes = _encoding.GetBytes(pattern);
+            if(operation.Equals(CompareOperations.Equal)){
+                if(!_indexWRs.ContainsKey(patternBytes.Length))
+                    return false;
+                return _indexWRs[patternBytes.Length].Any((haystack, offset, length) => haystack.CompareBytes(patternBytes, offset));
+            }
+            var targetWR = _indexWRs.Where(pair => pair.Key >= patternBytes.Length);
+            if(targetWR == null || !targetWR.Any())
+                return false;
+            return targetWR.Select(x => x.Value.Any((haystack, offset, length) => haystack.ContainBytes(patternBytes, offset, length))).Any(x => x);
+        }
+
+        public IndexItemToDelete DeleteByPosition(long position)
+        {
+            if(!_indexWRs.Any())
+                return default;
+            var pattern = BitConverter.GetBytes(position);
+            foreach(var indexWR in _indexWRs.Values){
+                var res = indexWR.DeleteByPosition(pattern);
+                if(res == null)
+                    continue;
+                return res;
+            }
+            return default;
+        }
     }
 }

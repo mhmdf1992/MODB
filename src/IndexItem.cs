@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using MO.MOFile;
 
 namespace MO.MODB{
@@ -31,12 +32,21 @@ namespace MO.MODB{
         }
     }
 
-    public class ReadObjectListItem : ReadObject
-    {
-        protected int _number; public int Number => _number;
-        public ReadObjectListItem(int number, long pos, int len) : base(pos, len)
-        {
-            _number = number;
+    public class InsertIndexHash{
+        protected string _indexName; public string IndexName => _indexName;
+        protected Dictionary<string,string> _hash; public Dictionary<string,string> Hash => _hash;
+        public InsertIndexHash(string indexName, Dictionary<string,string> hash){
+            _indexName = indexName;
+            _hash = hash;
+        }
+    }
+
+    public class InsertIndexItem{
+        protected string _indexName; public string IndexName => _indexName;
+        protected string _value; public string Value => _value;
+        public InsertIndexItem(string indexName, string value){
+            _indexName = indexName;
+            _value = value;
         }
     }
 }
