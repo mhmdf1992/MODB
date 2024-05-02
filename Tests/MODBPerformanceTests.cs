@@ -5,6 +5,78 @@ public class MODBPerformanceTests
     IDB _db;
     public MODBPerformanceTests(){
         _db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "key_val_db"));
+        SeedDB();
+    }
+
+    [Theory]
+    [InlineData("male")]
+    public void AnyContainTest(string pattern)
+    {
+        var res = StopWatch( ()=> _db.Any("sex", pattern, CompareOperations.Contain));
+        Assert.True(res.Result);
+        Assert.True(res.ProcessingTime < 5, $"Filter \nResult TotalItems: {res.Result}\nElapsed Time {res.ProcessingTime}ms");
+    }
+
+    [Theory]
+    [InlineData("male")]
+    public void AnyEqualTest(string pattern)
+    {
+        var res = StopWatch( ()=> _db.Any("sex", pattern, CompareOperations.Equal));
+        Assert.True(res.Result);
+        Assert.True(res.ProcessingTime < 5, $"Filter \nResult TotalItems: {res.Result}\nElapsed Time {res.ProcessingTime}ms");
+    }
+
+    [Fact]
+    public void CountFilterEqualTest()
+    {
+        var res = StopWatch( ()=> _db.Count("sex", "male", CompareOperations.Equal));
+        Assert.Equal(100000000, res.Result);
+        Assert.True(res.ProcessingTime < 3000, $"Filter \nResult TotalItems: {res.Result}\nElapsed Time {res.ProcessingTime}ms");
+    }
+
+    [Fact]
+    public void CountFilterContainTest()
+    {
+        var res = StopWatch( ()=> _db.Count("sex", "male", CompareOperations.Contain));
+        Assert.Equal(100000000, res.Result);
+        Assert.True(res.ProcessingTime < 3000, $"Filter \nResult TotalItems: {res.Result}\nElapsed Time {res.ProcessingTime}ms");
+    }
+
+    [Theory]
+    [InlineData("male")]
+    public void FilterContainTest(string pattern)
+    {
+        var res = StopWatch( ()=> _db.Filter("sex", pattern, CompareOperations.Contain));
+        foreach(var item in res.Result.Items){
+            Assert.Contains(pattern, item);
+        }
+        var count = _db.Count("sex", pattern, CompareOperations.Contain);
+        Assert.Equal(100000000, count);
+        Assert.True(res.ProcessingTime < 5, $"Filter \nResult TotalItems: {count}\nResult ItemsCount: {res.Result.Items.Count()}\nResult Page: {res.Result.Page}\nResult PageSize: {res.Result.PageSize}\nElapsed Time {res.ProcessingTime}ms");
+    }
+
+    [Theory]
+    [InlineData("male")]
+    public void FilterEqualTest(string pattern)
+    {
+        var res = StopWatch( ()=> _db.Filter("sex", pattern, CompareOperations.Equal));
+        foreach(var item in res.Result.Items){
+            Assert.Contains(pattern, item);
+        }
+        var count = _db.Count("sex", pattern, CompareOperations.Contain);
+        Assert.Equal(100000000, count);
+        Assert.True(res.ProcessingTime < 5, $"Filter \nResult TotalItems: {count}\nResult ItemsCount: {res.Result.Items.Count()}\nResult Page: {res.Result.Page}\nResult PageSize: {res.Result.PageSize}\nElapsed Time {res.ProcessingTime}ms");
+    }
+
+    [Theory]
+    [InlineData("99999999")]
+    [InlineData("98987789")]
+    [InlineData("84481811")]
+    public void ExistsTest(string key)
+    {
+        var res = StopWatch( ()=> _db.Exists(key));
+        Assert.True(res.Result);
+        Assert.True(res.ProcessingTime < 1000, $"Exists {key}\n Result: {res.Result}\nElapsed Time {res.ProcessingTime}ms");
     }
 
     [Fact]
@@ -27,8 +99,9 @@ public class MODBPerformanceTests
     public void AllTest()
     {
         var res = StopWatch( ()=> _db.All());
-        Assert.Equal(100000000, res.Result.TotalItems);
-        Assert.True(res.ProcessingTime < 5, $"Fetch all\nResult TotalItems: {res.Result.TotalItems}\nResult ItemsCount: {res.Result.Items.Count()}\nResult Page: {res.Result.Page}\nResult PageSize: {res.Result.PageSize}\nElapsed Time {res.ProcessingTime}ms");
+        var count = _db.Count();
+        Assert.Equal(100000000, count);
+        Assert.True(res.ProcessingTime < 5, $"Fetch all\nResult TotalItems: {count}\nResult ItemsCount: {res.Result.Items.Count()}\nResult Page: {res.Result.Page}\nResult PageSize: {res.Result.PageSize}\nElapsed Time {res.ProcessingTime}ms");
     }
 
     [Theory]
@@ -49,40 +122,6 @@ public class MODBPerformanceTests
         Assert.True(res.ProcessingTime < 1000, $"Key {key} found\nResult: {res.Result}\nElapsed Time {res.ProcessingTime}ms");
     }
 
-    [Fact]
-    public void InsertHash100MillionRecordIfAnyFalse_CountEquals100MillionTest()
-    {
-        if(!_db.Any()){
-            var random = new Random();
-            var hash = new Dictionary<string, string>();
-            for(int i = 1; i <= 20000000; i ++){
-                hash.Add(i.ToString(), "{\"Id\":\"" + i + " \",\"FName\":\"" + GenerateName(4) + "\",\"LName\":\"" + GenerateName(6) + "\",\"Age\":\"" + random.Next(20, 100) + "\" }");
-            }
-            _db.InsertHash(hash);
-            hash = new Dictionary<string, string>();
-            for(int i = 20000001; i <= 40000000; i ++){
-                hash.Add(i.ToString(), "{\"Id\":\"" + i + " \",\"FName\":\"" + GenerateName(4) + "\",\"LName\":\"" + GenerateName(6) + "\",\"Age\":\"" + random.Next(20, 100) + "\" }");
-            }
-            _db.InsertHash(hash);
-            hash = new Dictionary<string, string>();
-            for(int i = 40000001; i <= 60000000; i ++){
-                hash.Add(i.ToString(), "{\"Id\":\"" + i + " \",\"FName\":\"" + GenerateName(4) + "\",\"LName\":\"" + GenerateName(6) + "\",\"Age\":\"" + random.Next(20, 100) + "\" }");
-            }
-            _db.InsertHash(hash);
-            hash = new Dictionary<string, string>();
-            for(int i = 60000001; i <= 80000000; i ++){
-                hash.Add(i.ToString(), "{\"Id\":\"" + i + " \",\"FName\":\"" + GenerateName(4) + "\",\"LName\":\"" + GenerateName(6) + "\",\"Age\":\"" + random.Next(20, 100) + "\" }");
-            }
-            _db.InsertHash(hash);
-            hash = new Dictionary<string, string>();
-            for(int i = 80000001; i <= 100000000; i ++){
-                hash.Add(i.ToString(), "{\"Id\":\"" + i + " \",\"FName\":\"" + GenerateName(4) + "\",\"LName\":\"" + GenerateName(6) + "\",\"Age\":\"" + random.Next(20, 100) + "\" }");
-            }
-            _db.InsertHash(hash);
-        }
-        Assert.Equal(100000000, _db.Count());
-    }
-
     static DBResponse<T> StopWatch<T>(Func<T> func){
         var timer = new System.Diagnostics.Stopwatch();
         timer.Start();
@@ -96,7 +135,8 @@ public class MODBPerformanceTests
         public long ProcessingTime {get; set;}
     }
 
-    public static string GenerateName(int len)
+    static readonly string[] SEX_ARRAY = new string[] {"male", "female"};
+    static string GenerateName(int len)
     { 
         Random r = new Random();
         string[] consonants = { "b", "c", "d", "f", "g", "h", "j", "k", "l", "m", "l", "n", "p", "q", "r", "s", "sh", "zh", "t", "v", "w", "x" };
@@ -114,4 +154,38 @@ public class MODBPerformanceTests
         }
         return Name;
      }
+
+    void SeedDB(){
+        if(!_db.Any() || _db.Count() < 100000000){
+            var random = new Random();
+            var hash = new Dictionary<string, string>();
+            var fnameIndexHash = new InsertIndexHash("FName", new Dictionary<string,string>());
+            var lnameIndexHash = new InsertIndexHash("LNname", new Dictionary<string,string>());
+            var ageIndexHash = new InsertIndexHash("Age", new Dictionary<string,string>());
+            var sexIndexHash = new InsertIndexHash("Sex", new Dictionary<string,string>());
+            var descriptionIndexHash = new InsertIndexHash("Description", new Dictionary<string,string>());
+            for(int i = _db.Count() + 1; i <= 100000000; i ++){
+                var fname = GenerateName(4);
+                var lname = GenerateName(6);
+                var age = random.Next(20, 100);
+                var sex = SEX_ARRAY[random.Next(0, 1)];
+                var description = $"{fname} {lname} is a {sex} {age} years old";
+                hash.Add(i.ToString(), "{\"Id\":\"" + i + " \",\"FName\":\"" + fname + "\",\"LName\":\"" + lname + "\",\"Age\":\"" + age + "\",\"Sex\":\"" + sex + "\",\"Description\":\"" + description + "\" }");
+                fnameIndexHash.Hash.Add(i.ToString(), fname);
+                lnameIndexHash.Hash.Add(i.ToString(), lname);
+                ageIndexHash.Hash.Add(i.ToString(), age.ToString());
+                sexIndexHash.Hash.Add(i.ToString(), sex);
+                descriptionIndexHash.Hash.Add(i.ToString(), description);
+                if(i % 10000000 == 0){
+                    _db.InsertHash(hash, fnameIndexHash, lnameIndexHash, ageIndexHash, sexIndexHash, descriptionIndexHash);
+                    hash = new Dictionary<string, string>();
+                    fnameIndexHash = new InsertIndexHash("FName", new Dictionary<string,string>());
+                    lnameIndexHash = new InsertIndexHash("LNname", new Dictionary<string,string>());
+                    ageIndexHash = new InsertIndexHash("Age", new Dictionary<string,string>());
+                    sexIndexHash = new InsertIndexHash("Sex", new Dictionary<string,string>());
+                    descriptionIndexHash = new InsertIndexHash("Description", new Dictionary<string,string>());
+                }
+            }
+        }
+    }
 }

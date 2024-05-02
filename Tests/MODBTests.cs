@@ -70,7 +70,7 @@ public class MODBTests
         _db.Set("test5", "ndfiuhnsiufbniudbnf");
         var res = _db.All();
         Assert.All(res.Items, x => x.Equals("ndfiuhnsiufbniudbnf"));
-        Assert.True(res.TotalItems == 5);
+        Assert.Equal(5, _db.Count());
         _db.Clear();
     }
 
