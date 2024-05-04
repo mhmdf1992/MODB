@@ -6,9 +6,9 @@ namespace MO.MOFile{
         IEnumerable<ReadObject> All();
         bool Any();
         int Count();
-        bool Exists(string key);
-        IndexItemToDelete Delete(string key);
-        IndexItemToDelete DeleteIfExists(string key);
-        IndexItemToRead Find(string key);
+        bool Exists(object key);
+        IndexItemToDelete Delete(object key);
+        IndexItemToDelete DeleteIfExists(object key);
+        IndexItemToRead Find(object key);
     }
 }

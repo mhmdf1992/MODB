@@ -1,6 +1,8 @@
 namespace MO.MODB.Exceptions{
     public class InvalidIndexException : System.Exception{
-        public InvalidIndexException(): base($"Invalid Index"){
+        string _name;
+        public InvalidIndexException(string name): base($"Invalid Index {name}"){
+            _name = name;
         }
     }
 }

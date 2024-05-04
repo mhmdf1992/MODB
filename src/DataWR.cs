@@ -112,5 +112,11 @@ namespace MO.MODB{
             stream.Read(buffer, 0, length);
             return new MemoryStream(buffer);
         }
+
+        public void Clear()
+        {
+            _flatFileWR.Clear();
+            _delFlatFileWR.Clear();
+        }
     }
 }

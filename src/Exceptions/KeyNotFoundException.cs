@@ -1,8 +1,8 @@
 namespace MO.MODB.Exceptions{
     public class KeyNotFoundException : System.Exception{
-        protected string _key;
-        public string Key => _key;
-        public KeyNotFoundException(string key): base($"Key {key} does not exist"){
+        protected object _key;
+        public object Key => _key;
+        public KeyNotFoundException(object key): base($"Key {key} does not exist"){
             _key = key;
         }
     }

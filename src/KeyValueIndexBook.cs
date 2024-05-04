@@ -6,7 +6,7 @@ using MO.MOFile;
 namespace MO.MODB{
     public class KeyValueIndexBook : KeyIndexBookBase, IIndexBook, IKeyValueIndexBook
     {
-        public KeyValueIndexBook(string name, string path) : base(name, path){
+        public KeyValueIndexBook(string name, string type, string path) : base(name, type, path){
         }
         
         public bool Any(){
@@ -21,40 +21,40 @@ namespace MO.MODB{
             return _indexWRs.Values.Sum(x => ((IKeyValueIndexWR)x).Count());
         }
 
-        public bool Exists(string key){
+        public bool Exists(object key){
             if(!_indexWRs.Any())
                 return false;
-            var pattern = _encoding.GetBytes(key);
+            var pattern = key.ToBytes(_indexType);
             if(!_indexWRs.ContainsKey(pattern.Length))
                 return false;
             return ((IKeyValueIndexWR)_indexWRs[pattern.Length]).Exists(pattern);
         }
 
-        public IndexItemToRead Find(string key)
+        public IndexItemToRead Find(object key)
         {
             if(!_indexWRs.Any())
-                throw new KeyNotFoundException();
-            var pattern = _encoding.GetBytes(key);
+                throw new Exceptions.KeyNotFoundException(key);
+            var pattern = key.ToBytes(_indexType);
             if(!_indexWRs.ContainsKey(pattern.Length))
-                throw new KeyNotFoundException();
+                throw new Exceptions.KeyNotFoundException(key);
             return ((IKeyValueIndexWR)_indexWRs[pattern.Length]).Find(pattern);
         }
 
-        public IndexItemToDelete Delete(string key)
+        public IndexItemToDelete Delete(object key)
         {
             if(!_indexWRs.Any())
-                throw new KeyNotFoundException(key);
-            var pattern = _encoding.GetBytes(key);
+                throw new Exceptions.KeyNotFoundException(key);
+            var pattern = key.ToBytes(_indexType);
             if(!_indexWRs.ContainsKey(pattern.Length))
-                throw new KeyNotFoundException(key);
+                throw new Exceptions.KeyNotFoundException(key);
             return ((IKeyValueIndexWR)_indexWRs[pattern.Length]).Delete(pattern);
         }
 
-        public IndexItemToDelete DeleteIfExists(string key)
+        public IndexItemToDelete DeleteIfExists(object key)
         {
             if(!_indexWRs.Any())
                 return default;
-            var pattern = _encoding.GetBytes(key);
+            var pattern = key.ToBytes(_indexType);
             if(!_indexWRs.ContainsKey(pattern.Length))
                 return default;
             return ((IKeyValueIndexWR)_indexWRs[pattern.Length]).Delete(pattern);

@@ -13,5 +13,6 @@ namespace MO.MODB{
         long Erase(long position, int length);
         string Get(long position, int length);
         Stream GetStream(long position, int length);
+        void Clear();
     }
 }

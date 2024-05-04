@@ -1,18 +1,21 @@
+using System;
 using System.Collections.Generic;
 using MO.MOFile;
 
 namespace MO.MODB{
     public interface IIndexBook{
         string IndexName {get;}
+        string IndexType {get;}
         long Size {get;}
         int KeyMaxBytes {get;}
-        PagedList<ReadObject> Filter(string pattern, CompareOperations operation, int page = 1, int pageSize = 10);
-        int Count(string pattern, CompareOperations operation);
-        bool Any(string pattern, CompareOperations operation);
+        bool IsKeyIndex {get;}
+        PagedList<ReadObject> Filter(object pattern, CompareOperators compareOperator, int page = 1, int pageSize = 10);
+        int Count(object pattern, CompareOperators compareOperator);
+        bool Any(object pattern, CompareOperators compareOperator);
         IndexItemToDelete DeleteByPosition(long position);
-        void Add(string key, long valuePosition, int valueLength);
+        void Add(object key, long valuePosition, int valueLength);
         void InsertHash(Dictionary<int,byte[][]> hash);
-        byte[] GetBytes(string key, long valuePosition, int valueLength);
+        byte[] GetBytes(object key, long valuePosition, int valueLength);
         void Clear();
     }
 }

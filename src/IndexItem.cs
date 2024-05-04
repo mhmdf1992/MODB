@@ -10,12 +10,7 @@ namespace MO.MODB{
             _valuelength = valueLength;
         }
     }
-    public class IndexItemToWrite : IndexItem{
-        object _key; public object Key => _key;
-        public IndexItemToWrite(object key, long valuePosition, int valueLength):base(valuePosition, valueLength){
-            _key = Key;
-        }
-    }
+    
     public class IndexItemToRead : IndexItem{
         string _index; public string Index => _index;
         long _indexPosition; public long IndexPosition => _indexPosition;
@@ -43,10 +38,12 @@ namespace MO.MODB{
 
     public class InsertIndexItem{
         protected string _indexName; public string IndexName => _indexName;
-        protected string _value; public string Value => _value;
-        public InsertIndexItem(string indexName, string value){
-            _indexName = indexName;
-            _value = value;
+        protected object _indexValue; public object IndexValue => _indexValue;
+        protected string _indexType; public string IndexType => _indexType;
+        public InsertIndexItem(string name, object value, string type){
+            _indexName = name;
+            _indexValue = value;
+            _indexType = type;
         }
     }
 }
