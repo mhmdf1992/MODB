@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,14 +11,14 @@ namespace MO.MODB{
     {
         protected string _path;
         protected IDataWR _dataWR;
-        protected Dictionary<string, IIndexBook> _indexBooks;
+        protected ConcurrentDictionary<string, IIndexBook> _indexBooks;
         protected string _name; public string Name => _name;
         public long Size => _dataWR.Size + _indexBooks.Values.Sum(x => x.Size);
         public DB(string path){
             _path = path;
             _name = Path.GetFileName(_path);
             _dataWR = new DataWR(Path.Combine(path, $"{_name}.dat"));
-            _indexBooks = new Dictionary<string, IIndexBook>();
+            _indexBooks = new ConcurrentDictionary<string, IIndexBook>();
             LoadIndexes();
         }
 
@@ -30,10 +31,10 @@ namespace MO.MODB{
                 var name = nameAndType.Split('.')[0];
                 var type = nameAndType.Split('.')[1];
                 if(name == "key"){
-                    _indexBooks.Add(name, new KeyValueIndexBook(name, type, dir));
+                    _indexBooks.TryAdd(name, new KeyValueIndexBook(name, type, dir));
                     continue;
                 }
-                _indexBooks.Add(name, new KeyIndexBook(name, type, dir));
+                _indexBooks.TryAdd(name, new KeyIndexBook(name, type, dir));
             }
         }
 
@@ -51,7 +52,7 @@ namespace MO.MODB{
                 var indexName = i.IndexName.ToLower();
                 if(!_indexBooks.ContainsKey(indexName)){
                     i.IndexType.IsSupportedType(i.IndexName);
-                    _indexBooks.Add(indexName, new KeyIndexBook(indexName, i.IndexType, Path.Combine(_path, $"{indexName}.{i.IndexType}.index")));
+                    _indexBooks.TryAdd(indexName, new KeyIndexBook(indexName, i.IndexType, Path.Combine(_path, $"{indexName}.{i.IndexType}.index")));
                 }
                 var indexBook = _indexBooks[indexName];
                 i.IndexValue.ToBytes(indexBook.IndexType).IsValidIndexValue(i.IndexName, i.IndexValue, i.IndexType);
@@ -73,7 +74,7 @@ namespace MO.MODB{
                 var indexName = i.IndexName.ToLower();
                 if(!_indexBooks.ContainsKey(indexName)){
                     i.IndexType.IsSupportedType(i.IndexName);
-                    _indexBooks.Add(indexName, new KeyIndexBook(indexName, i.IndexType, Path.Combine(_path, $"{indexName}.{i.IndexType}.index")));
+                    _indexBooks.TryAdd(indexName, new KeyIndexBook(indexName, i.IndexType, Path.Combine(_path, $"{indexName}.{i.IndexType}.index")));
                 }
                 var indexBook = _indexBooks[indexName];
                 i.IndexValue.ToBytes(indexBook.IndexType).IsValidIndexValue(i.IndexName, i.IndexValue, i.IndexType);
@@ -118,7 +119,7 @@ namespace MO.MODB{
         {
             if(!_indexBooks.ContainsKey("key")){
                 keyType.IsSupportedKeyType("key");
-                _indexBooks.Add("key", new KeyValueIndexBook("key", keyType, Path.Combine(_path, $"key.{keyType}.index")));
+                _indexBooks.TryAdd("key", new KeyValueIndexBook("key", keyType, Path.Combine(_path, $"key.{keyType}.index")));
             }
             var keyBook = _indexBooks["key"];
             key.ToBytes(keyBook.IndexType).IsValidIndexValue(keyBook.IndexName, key, keyBook.IndexType);
@@ -140,7 +141,7 @@ namespace MO.MODB{
         {
             if(!_indexBooks.ContainsKey("key")){
                 keyType.IsSupportedKeyType("key");
-                _indexBooks.Add("key", new KeyValueIndexBook("key", keyType, Path.Combine(_path, $"key.{keyType}.index")));
+                _indexBooks.TryAdd("key", new KeyValueIndexBook("key", keyType, Path.Combine(_path, $"key.{keyType}.index")));
             }
             var keyBook = _indexBooks["key"];
             key.ToBytes(keyBook.IndexType).IsValidIndexValue(keyBook.IndexName, key, keyBook.IndexType);
@@ -165,6 +166,8 @@ namespace MO.MODB{
             key.ToBytes(keyBook.IndexType).IsValidIndexValue(keyBook.IndexName, key, keyBook.IndexType);
 
             var indexItem = ((IKeyValueIndexBook)keyBook).Delete(key);
+            if(indexItem == null)
+                throw new Exceptions.KeyNotFoundException(key);
             if(indexItem.Deleted){
                 _dataWR.Erase(indexItem.ValuePosition, indexItem.ValueLength);
                 var otherIndexBooks = _indexBooks.Values.Where(x => !x.IsKeyIndex);
@@ -176,32 +179,39 @@ namespace MO.MODB{
             }
         }
 
-        public void InsertHash(Dictionary<string, string> hash, params InsertIndexHash[] index){
-            throw new NotImplementedException();
-            // var keyBook = _indexBooks["key"];
-            // foreach(var pair in hash){
-            //     Validator.ValidateKey(pair.Key, keyBook.KeyMaxBytes);
-            // }
-            // var keyPositionList = _dataWR.FlatFileWR.AppendList(hash.ToArray()).ToArray();
-            // var keyIndexHash = keyPositionList.Select(pair => new {keyBytesLength = Encoding.UTF8.GetByteCount(pair.Key), indexItemBytes = keyBook.GetBytes(pair.Key, pair.Value.Position, pair.Value.Length)})
-            //     .GroupBy(obj => obj.keyBytesLength,
-            //             obj => obj.indexItemBytes,
-            //             (key, grp) => new KeyValuePair<int,byte[][]>(key, grp.ToArray())).ToDictionary(x => x.Key, x => x.Value);
-            // keyBook.InsertHash(keyIndexHash);
-            // if(index == null && !index.Any())
-            //     return;
-            // foreach(var i in index){
-            //     var indexName = i.IndexName.ToLower();
-            //     if(!_indexBooks.ContainsKey(indexName))
-            //         _indexBooks.Add(indexName, new KeyIndexBook(indexName, Path.Combine(_path, $"{indexName}.index")));
-            //     var indexBook = _indexBooks[indexName];
-            //     var indexHash = keyPositionList.Join(i.Hash, keyPosList => keyPosList.Key, hash => hash.Key, (keyPosList, hash) => new {key = hash.Value, val = keyPosList.Value})
-            //         .Select(indexItem => new {keyBytesLength = Encoding.UTF8.GetByteCount(indexItem.key), indexItemBytes = indexBook.GetBytes(indexItem.key, indexItem.val.Position, indexItem.val.Length)})
-            //         .GroupBy(obj => obj.keyBytesLength,
-            //                 obj => obj.indexItemBytes,
-            //                 (key, grp) => new KeyValuePair<int,byte[][]>(key, grp.ToArray())).ToDictionary(x => x.Key, x => x.Value);
-            //     indexBook.InsertHash(indexHash);
-            // }
+        public void InsertHash(Dictionary<object, string> hash, string keyType, params InsertIndexHash[] index){
+            if(!_indexBooks.ContainsKey("key"))
+                _indexBooks.TryAdd("key", new KeyValueIndexBook("key", keyType, Path.Combine(_path, $"key.{keyType}.index")));
+            var keyBook = _indexBooks["key"];
+            var keyPositionList = _dataWR.FlatFileWR.AppendList(hash.ToArray()).ToArray();
+            Func<object, string, int> calculateLength;
+            if(keyType == typeof(string).Name)
+                calculateLength = (key, type) => ((string)key).Length;//key.ToBytes(type).Length;
+            else
+                calculateLength = (key, type) => Converter.NUMBER_OF_BYTES[keyType];
+            var keyIndexHash = keyPositionList.Select(pair => new {keyBytesLength = calculateLength(pair.Key, keyType), indexItemBytes = keyBook.GetBytes(pair.Key, pair.Value.Position, pair.Value.Length)})
+                .GroupBy(obj => obj.keyBytesLength,
+                        obj => obj.indexItemBytes,
+                        (key, grp) => new KeyValuePair<int,byte[][]>(key, grp.ToArray())).ToDictionary(x => x.Key, x => x.Value);
+            keyBook.InsertHash(keyIndexHash);
+            if(index == null && !index.Any())
+                return;
+            foreach(var i in index){
+                if(i.IndexType == typeof(string).Name)
+                    calculateLength = (key, type) => ((string)key).Length;//key.ToBytes(type).Length;
+                else
+                    calculateLength = (key, type) => Converter.NUMBER_OF_BYTES[type];
+                var indexName = i.IndexName.ToLower();
+                if(!_indexBooks.ContainsKey(indexName))
+                    _indexBooks.TryAdd(indexName, new KeyIndexBook(indexName, i.IndexType, Path.Combine(_path, $"{indexName}.{i.IndexType}.index")));
+                var indexBook = _indexBooks[indexName];
+                var indexHash = keyPositionList.Join(i.Hash, keyPosList => keyPosList.Key, hash => hash.Key, (keyPosList, hash) => new {key = hash.Value, val = keyPosList.Value})
+                    .Select(indexItem => new {keyBytesLength = calculateLength(indexItem.key, i.IndexType), indexItemBytes = indexBook.GetBytes(indexItem.key, indexItem.val.Position, indexItem.val.Length)})
+                    .GroupBy(obj => obj.keyBytesLength,
+                            obj => obj.indexItemBytes,
+                            (key, grp) => new KeyValuePair<int,byte[][]>(key, grp.ToArray())).ToDictionary(x => x.Key, x => x.Value);
+                indexBook.InsertHash(indexHash);
+            }
         }
 
         public PagedList<string> All(int page = 1, int pageSize = 10){
@@ -250,6 +260,28 @@ namespace MO.MODB{
             foreach(var book in _indexBooks.Values){
                 book.Clear();
             }
+        }
+
+        public void Set(string key, string value)
+        {
+            Set(key, value, typeof(string).Name);
+        }
+
+        public void SetStream(string key, Stream value)
+        {
+            SetStream(key, value, typeof(string).Name);
+        }
+
+        public string First(string indexName, object key)
+        {
+            indexName.IsValidIndexName();
+            var name = indexName.ToLower();
+            if(!_indexBooks.ContainsKey(name))
+                throw new IndexNotFoundException(indexName);
+            var indexBook = _indexBooks[name];
+            key.ToBytes(indexBook.IndexType).IsValidIndexValue(indexBook.IndexName, key, indexBook.IndexType);
+            var indexItem = indexBook.FindFirst(key) ?? throw new Exceptions.KeyNotFoundException(key);
+            return _dataWR.Get(indexItem.ValuePosition, indexItem.ValueLength);
         }
     }
 }

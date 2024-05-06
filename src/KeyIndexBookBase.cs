@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,12 +17,12 @@ namespace MO.MODB{
         protected const int KEY_MAX_BYTES = 64;
         public int KeyMaxBytes => KEY_MAX_BYTES;
         public long Size => _indexWRs.Values.Sum(x => x.Size);
-        protected Dictionary<int, IIndexWR> _indexWRs;
+        protected ConcurrentDictionary<int, IIndexWR> _indexWRs;
         public KeyIndexBookBase(string indexName, string indexType, string path){
             _indexName = indexName;
             _indexType = indexType;
             _path = path;
-            _indexWRs = new Dictionary<int, IIndexWR>();
+            _indexWRs = new ConcurrentDictionary<int, IIndexWR>();
             if(!Directory.Exists(_path)){
                 Directory.CreateDirectory(_path);
             }
@@ -36,7 +37,7 @@ namespace MO.MODB{
                 var name = Path.GetFileNameWithoutExtension(file);
                 var keyBytes = int.Parse(name);
                 if(IsKeyIndex){
-                    _indexWRs.Add(keyBytes, new KeyValueIndexWR(
+                    _indexWRs.TryAdd(keyBytes, new KeyValueIndexWR(
                         indexName: _indexName,
                         numberOfKeyBytes: keyBytes,
                         numberOfPositionBytes: POSITION_BYTES,
@@ -45,7 +46,7 @@ namespace MO.MODB{
                         ));
                     continue;
                 }
-                _indexWRs.Add(keyBytes, new KeyIndexWR(
+                _indexWRs.TryAdd(keyBytes, new KeyIndexWR(
                     indexName: _indexName,
                     numberOfKeyBytes: keyBytes,
                     numberOfPositionBytes: POSITION_BYTES,
@@ -69,7 +70,7 @@ namespace MO.MODB{
             var keyBytesLength = key.ToBytes(_indexType).Length;
             var bytesToWrite = GetBytes(key, valuePosition, valueLength);
             if(!_indexWRs.ContainsKey(keyBytesLength)){
-                _indexWRs.Add(keyBytesLength, 
+                _indexWRs.TryAdd(keyBytesLength, 
                     IsKeyIndex ? 
                     new KeyValueIndexWR(
                         indexName: _indexName,
@@ -91,7 +92,7 @@ namespace MO.MODB{
         public void InsertHash(Dictionary<int,byte[][]> hash){
             foreach(var pair in hash){
                 if(!_indexWRs.ContainsKey(pair.Key)){
-                    _indexWRs.Add(pair.Key, 
+                    _indexWRs.TryAdd(pair.Key, 
                         IsKeyIndex ? new KeyValueIndexWR(
                             indexName: _indexName,
                             numberOfKeyBytes: pair.Key,
@@ -178,6 +179,16 @@ namespace MO.MODB{
                 return res;
             }
             return default;
+        }
+
+        public IndexItemToRead FindFirst(object key)
+        {
+            if(!_indexWRs.Any())
+                throw new Exceptions.KeyNotFoundException(key);
+            var pattern = key.ToBytes(_indexType);
+            if(!_indexWRs.ContainsKey(pattern.Length))
+                throw new Exceptions.KeyNotFoundException(key);
+            return _indexWRs[pattern.Length].FindFirst(pattern);
         }
     }
 }

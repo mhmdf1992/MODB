@@ -29,9 +29,11 @@ namespace MO.MODB{
 
     public class InsertIndexHash{
         protected string _indexName; public string IndexName => _indexName;
-        protected Dictionary<string,string> _hash; public Dictionary<string,string> Hash => _hash;
-        public InsertIndexHash(string indexName, Dictionary<string,string> hash){
+        protected string _indexType; public string IndexType => _indexType;
+        protected Dictionary<object, object> _hash; public Dictionary<object, object> Hash => _hash;
+        public InsertIndexHash(string indexName, string indexType, Dictionary<object, object> hash){
             _indexName = indexName;
+            _indexType = indexType;
             _hash = hash;
         }
     }

@@ -150,5 +150,26 @@ namespace MO.MODB{
             }
             return false;
         }
+
+        public IndexItemToRead FindFirst(byte[] key)
+        {
+            using var fstream = _indexFileWR.GetStreamForRead();
+            long length = fstream.Length;
+            if(length == 0)
+                return default;
+            int indexItemFullBytes = TotalIndexItemBytes;
+            var buffer = new byte[indexItemFullBytes * 1000];
+            long currentPosition = 0;
+            while(currentPosition < length){
+                var read = fstream.Read(buffer, 0, buffer.Length);
+                for(int i = 0; i < read; i += indexItemFullBytes){
+                    if(buffer.CompareBytes(key, i)){
+                        return new IndexItemToRead(_indexName, currentPosition + i, BitConverter.ToInt64(buffer, i + key.Length), BitConverter.ToInt32(buffer, i + key.Length + _numberOfPositionBytes));
+                    }
+                }
+                currentPosition += buffer.Length;
+            }
+            return default;
+        }
     }
 }
