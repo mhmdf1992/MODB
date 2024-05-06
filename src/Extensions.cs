@@ -65,6 +65,7 @@ namespace MO.MODB{
         public static Func<byte[], int, int, bool> ToPredicate(this CompareOperators compareOperator, byte[] patternBytes, string type) => COMPARE_OPERATOR_PREDICATE[compareOperator](patternBytes.To(type, 0), patternBytes, type);
         public static Dictionary<CompareOperators,Func<dynamic, byte[], string, Func<byte[], int, int, bool>>> COMPARE_OPERATOR_PREDICATE = new Dictionary<CompareOperators, Func<dynamic, byte[], string, Func<byte[], int, int, bool>>>(){
             { CompareOperators.Equal, (pattern, patternBytes, type) => (haystack, offset, length) => haystack.CompareBytes(patternBytes, offset)},
+            { CompareOperators.NotEqual, (pattern, patternBytes, type) => (haystack, offset, length) => !haystack.CompareBytes(patternBytes, offset)},
             { CompareOperators.Contain, (pattern, patternBytes, type) => (haystack, offset, length) => haystack.ContainBytes(patternBytes, offset, length)},
             { CompareOperators.GreaterThan, (pattern, patternBytes, type) => (haystack, offset, length) => haystack.To(type, offset) > pattern},
             { CompareOperators.GreaterThanOrEqual, (pattern, patternBytes, type) => (haystack, offset, length) => haystack.To(type, offset) >= pattern},
