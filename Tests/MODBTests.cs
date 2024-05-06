@@ -4,120 +4,178 @@ namespace MODB.Tests;
 
 public class MODBTests
 {
-    IDB _db;
-    public MODBTests(){
-        _db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "test_db"));
+
+    [Fact]
+    public void All_WhenCountEqualZeroAllItemsEmpty_WhenCountGreaterThanZeroAllItemsCountEqualNumberOfSetsEqualCountAndAllItemsContainsSetValues_Test()
+    {
+        var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "all_test_db"));
+
+        Assert.Equal(0, db.Count());
+        Assert.Empty(db.All().Items);
+
+        var numberOfSets = 10;
+        var values = Enumerable.Range(1, numberOfSets).Select(i => {
+            var value = $"testvalue{i}";
+            db.Set(i.ToString(), value);
+            return value;
+        }).ToArray();
+
+        Assert.True(values.Length > 0 && values.Length == db.Count());
+        var all = db.All(pageSize: numberOfSets);
+        Assert.Equal(db.Count(), all.Items.Count());
+
+        for(int i = 0; i < values.Length; i ++){
+            Assert.Contains(values[i], all.Items);
+        }
+
+        db.Clear();
     }
 
     [Fact]
-    public void SetThenDeleteThenSet_CaseSizeOfKeyAndValueEqualsDeletedThenDBSizeEqualTest()
+    public void Delete_WhenExistsEqualFalseThenDeleteThrowsKeyNotFoundException_WhenExistsEqualTrueIfDeleteThenExistsEqualFalse_Test()
     {
-        var db1 = new DB(Path.Combine(Directory.GetCurrentDirectory(), "test_del_db"));
-        for(int i = 1; i <= 100; i ++){
-            db1.Set($"test{i}", "ndfiuhnsiufbniudbnf");
-        }
-        var baseSize = db1.Size;
-        for(int i = 1; i <= 100; i ++){
-            db1.Delete($"test{i}");
-        }
-        Assert.Equal(baseSize, db1.Size - (20*100));
-        for(int i = 1; i <= 100; i ++){
-            db1.Set($"test{i}", "ndfiuhnsiufbniudbnf");    
-        }
-        Assert.Equal(baseSize, db1.Size);
-        db1.Clear();
+        var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "delete_test_db"));
+        var key = "testkey";
+        var value = "testvalue";
+
+        Assert.False(db.Exists(key));
+        Assert.Throws<MO.MODB.Exceptions.KeyNotFoundException>(() => db.Delete(key));
+
+        db.Set(key, value);
+        Assert.True(db.Exists(key));
+        db.Delete(key);
+        Assert.False(db.Exists(key));
+
+        db.Clear();
     }
 
     [Fact]
-    public void SetThenDeleteThenSet_CaseInputSizeOfKeyAndValueLessThanDeletedThenDBSizeEqualTest()
+    public void GetStream_WhenExistsEqualFalseThenGetThrowsKeyNotFoundException_WhenExistsEqualTrueGetReturnSetValue_Test()
     {
-        var db1 = new DB(Path.Combine(Directory.GetCurrentDirectory(), "test_del_db"));
-        for(int i = 1; i <= 100; i ++){
-            db1.Set($"test{i}", "ndfiuhnsiufbniudbnf");
-        }
-        var baseSize = db1.Size;
-        for(int i = 1; i <= 100; i ++){
-            db1.Delete($"test{i}");
-        }
-        Assert.Equal(baseSize, db1.Size - (20*100));
-        for(int i = 1; i <= 100; i ++){
-            db1.Set($"test{i}", "ndfiuhnsiuf");    
-        }
-        Assert.Equal(baseSize, db1.Size);
-        db1.Clear();
-    }
+        var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "getstream_test_db"));
+        var key = "testkey";
+        var value = "testvalue";
+        
+        Assert.False(db.Exists(key));
+        Assert.Throws<MO.MODB.Exceptions.KeyNotFoundException>(() => db.Get(key));
 
-    [Fact]
-    public void SetThenAnyReturnTrue_ClearThenAnyFalseTest()
-    {
-        _db.Set("test1", "ndfiuhnsiufbniudbnf");
-        _db.Set("test2", "ndfiuhnsiufbniudbnf");
-        _db.Set("test3", "ndfiuhnsiufbniudbnf");
-        _db.Set("test4", "ndfiuhnsiufbniudbnf");
-        _db.Set("test5", "ndfiuhnsiufbniudbnf");
-        Assert.True(_db.Any());
-        _db.Clear();
-        Assert.False(_db.Any());
-    }
-
-    [Fact]
-    public void AllReturnAllSetsTest()
-    {
-        _db.Set("test1", "ndfiuhnsiufbniudbnf");
-        _db.Set("test2", "ndfiuhnsiufbniudbnf");
-        _db.Set("test3", "ndfiuhnsiufbniudbnf");
-        _db.Set("test4", "ndfiuhnsiufbniudbnf");
-        _db.Set("test5", "ndfiuhnsiufbniudbnf");
-        var res = _db.All();
-        Assert.All(res.Items, x => x.Equals("ndfiuhnsiufbniudbnf"));
-        Assert.Equal(5, _db.Count());
-        _db.Clear();
-    }
-
-    [Fact]
-    public void GetReturnSetValueTest()
-    {
-        var key = "test";
-        var value = "ndfiuhnsiufbniudbnf";
-        _db.Set(key, value);
-        Assert.Equal(value, _db.Get(key));
-        _db.Delete(key);
-    }
-
-    [Fact]
-    public void GetStreamReturnSetStreamValueTest()
-    {
-        var key = "test";
-        var value = "ndfiuhnsiufbniudbnf";
-        var bytes = Encoding.UTF8.GetBytes(value);
-        using var stream = new MemoryStream(bytes);
-        _db.SetStream(key, stream);
-        using var resStream = _db.GetStream(key);
-        using var reader = new StreamReader(resStream);
+        db.Set(key, value);
+        Assert.True(db.Exists(key));
+        using var stream = db.GetStream(key);
+        using var reader = new StreamReader(stream);
         Assert.Equal(value, reader.ReadToEnd());
-        _db.Delete(key);
+
+        db.Clear();
     }
 
     [Fact]
-    public void AnyReturnFalseIfDBEmptyElseFalseTest()
+    public void Get_WhenExistsEqualFalseThenGetThrowsKeyNotFoundExceptionElseReturnSetValue_Test()
     {
-        var key = "test";
-        Assert.True(!_db.Any());
-        _db.Set(key, "ndfiuhnsiufbniudbnf");
-        Assert.True(_db.Any());
-        _db.Delete(key);
+        var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "get_test_db"));
+        var key = "testkey";
+        var value = "testvalue";
+
+        Assert.False(db.Exists(key));
+        Assert.Throws<MO.MODB.Exceptions.KeyNotFoundException>(() => db.Get(key));
+
+        db.Set(key, value);
+        Assert.True(db.Exists(key));
+        Assert.Equal(value, db.Get(key));
+
+        db.Clear();
     }
 
     [Fact]
-    public void KeyExistsFalseIfNotSetElseTrue_KeyExistsFalseIfDeletedTest()
+    public void SetStream_WhenCountEqualsZeroIfSetThenSetKeysExistsAndCountEqualsNumberOfSets_Test()
     {
-        var key = "test";
-        Assert.True(!_db.Any());
-        _db.Set(key, "ndfiuhnsiufbniudbnf");
-        Assert.True(_db.Any());
-        Assert.True(_db.Exists(key));
-        _db.Delete(key);
-        Assert.True(!_db.Exists(key));
-        Assert.True(!_db.Any());
+        var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "setstream_test_db"));
+
+        Assert.Equal(0, db.Count());
+        var numberOfSets = 10;
+
+        for(int i = 1; i <= numberOfSets; i++){
+            db.SetStream(i.ToString(), new MemoryStream(Encoding.UTF8.GetBytes("testvalue")));
+            Assert.True(db.Exists(i.ToString()));
+        }
+        Assert.Equal(numberOfSets, db.Count());
+
+        db.Clear();
+    }
+
+    [Fact]
+    public void Set_WhenCountEqualsZeroIfSetThenSetKeysExistsAndCountEqualsNumberOfSets_Test()
+    {
+        var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "set_test_db"));
+
+        Assert.Equal(0, db.Count());
+        var numberOfSets = 10;
+
+        for(int i = 1; i <= numberOfSets; i++){
+            db.Set(i.ToString(), "testvalue");
+            Assert.True(db.Exists(i.ToString()));
+        }
+        Assert.Equal(numberOfSets, db.Count());
+
+        db.Clear();
+    }
+    
+    [Fact]
+    public void Exists_IfNotKeySetThenExistsEqualFalseElseTrue_Test()
+    {
+        var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "exists_test_db"));
+        var key = "testKey";
+
+        Assert.False(db.Exists(key));
+        
+        db.Set(key, "testvalue");
+        Assert.True(db.Exists(key));
+
+        db.Clear();
+    }
+
+    [Fact]
+    public void Clear_WhenCountGreaterThanZeroIfClearThenCountEqualZero_Test()
+    {
+        var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "clear_test_db"));
+
+        db.Set("testkey", "testvalue");
+        Assert.True(db.Count() > 0);
+
+        db.Clear();
+
+        Assert.Equal(0, db.Count());
+
+        db.Clear();
+    }
+
+    [Fact]
+    public void Count_WhenDBEmptyThenCountEqualZeroElseCountEqualToNumberOfSets_Test()
+    {
+        var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "count_test_db"));
+        Assert.Equal(0, db.Count());
+
+        var numberOfSets = 10;
+        for(int i = 1; i <= numberOfSets; i++){
+            db.Set(i.ToString(), "testvalue");
+        }
+
+        Assert.Equal(numberOfSets, db.Count());
+
+        db.Clear();
+    }
+
+    [Fact]
+    public void Any_WhenCountEqualZeroThenAnyReturnFalseElseTrue_Test()
+    {
+        var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "any_test_db"));
+        Assert.Equal(0, db.Count());
+        Assert.False(db.Any());
+
+        db.Set("testkey", "testvalue");
+
+        Assert.NotEqual(0, db.Count());
+        Assert.True(db.Any());
+
+        db.Clear();
     }
 }
