@@ -67,6 +67,7 @@ namespace MO.MODB{
             { CompareOperators.Equal, (pattern, patternBytes, type) => (haystack, offset, length) => haystack.CompareBytes(patternBytes, offset)},
             { CompareOperators.NotEqual, (pattern, patternBytes, type) => (haystack, offset, length) => !haystack.CompareBytes(patternBytes, offset)},
             { CompareOperators.Contain, (pattern, patternBytes, type) => (haystack, offset, length) => haystack.ContainBytes(patternBytes, offset, length)},
+            { CompareOperators.NotContain, (pattern, patternBytes, type) => (haystack, offset, length) => !haystack.ContainBytes(patternBytes, offset, length)},
             { CompareOperators.GreaterThan, (pattern, patternBytes, type) => (haystack, offset, length) => haystack.To(type, offset) > pattern},
             { CompareOperators.GreaterThanOrEqual, (pattern, patternBytes, type) => (haystack, offset, length) => haystack.To(type, offset) >= pattern},
             { CompareOperators.LessThan, (pattern, patternBytes, type) => (haystack, offset, length) => haystack.To(type, offset) < pattern},

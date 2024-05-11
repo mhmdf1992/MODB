@@ -3,6 +3,7 @@ namespace MO.MODB{
         Equal,
         NotEqual,
         Contain,
+        NotContain,
         GreaterThan,
         GreaterThanOrEqual,
         LessThan,

@@ -9,12 +9,12 @@ namespace MO.MODB{
         static readonly int MAXIMUM_INDEX_VALUE_LENGTH = 256;
         static readonly int MAXIMUM_INDEX_NAME_LENGTH = 64;
         static readonly Dictionary<string, CompareOperators[]> DATA_TYPE_VALID_COMPARE_OPERATORS = new Dictionary<string, CompareOperators[]>(){
-            {typeof(string).Name, new CompareOperators[]{CompareOperators.Equal, CompareOperators.NotEqual, CompareOperators.Contain}},
-            {typeof(short).Name, Enum.GetValues(typeof(CompareOperators)).Cast<CompareOperators>().Where(c => !c.Equals(CompareOperators.Contain)).ToArray()},
-            {typeof(int).Name, Enum.GetValues(typeof(CompareOperators)).Cast<CompareOperators>().Where(c => !c.Equals(CompareOperators.Contain)).ToArray()},
-            {typeof(long).Name, Enum.GetValues(typeof(CompareOperators)).Cast<CompareOperators>().Where(c => !c.Equals(CompareOperators.Contain)).ToArray()},
-            {typeof(double).Name, Enum.GetValues(typeof(CompareOperators)).Cast<CompareOperators>().Where(c => !c.Equals(CompareOperators.Contain)).ToArray()},
-            {typeof(bool).Name, Enum.GetValues(typeof(CompareOperators)).Cast<CompareOperators>().Where(c => !c.Equals(CompareOperators.Contain)).ToArray()}
+            {typeof(string).Name, new CompareOperators[]{CompareOperators.Equal, CompareOperators.NotEqual, CompareOperators.Contain, CompareOperators.NotContain}},
+            {typeof(short).Name, Enum.GetValues(typeof(CompareOperators)).Cast<CompareOperators>().Where(c => !c.Equals(CompareOperators.Contain) || !c.Equals(CompareOperators.NotContain)).ToArray()},
+            {typeof(int).Name, Enum.GetValues(typeof(CompareOperators)).Cast<CompareOperators>().Where(c => !c.Equals(CompareOperators.Contain) || !c.Equals(CompareOperators.NotContain)).ToArray()},
+            {typeof(long).Name, Enum.GetValues(typeof(CompareOperators)).Cast<CompareOperators>().Where(c => !c.Equals(CompareOperators.Contain) || !c.Equals(CompareOperators.NotContain)).ToArray()},
+            {typeof(double).Name, Enum.GetValues(typeof(CompareOperators)).Cast<CompareOperators>().Where(c => !c.Equals(CompareOperators.Contain) || !c.Equals(CompareOperators.NotContain)).ToArray()},
+            {typeof(bool).Name, Enum.GetValues(typeof(CompareOperators)).Cast<CompareOperators>().Where(c => !c.Equals(CompareOperators.Contain) || !c.Equals(CompareOperators.NotContain)).ToArray()}
         }; 
         
 
