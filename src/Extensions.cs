@@ -61,6 +61,7 @@ namespace MO.MODB{
         public static bool IsSupportedKeyType(this string dataType, string indexName) => Validator.ValidateKeyType(dataType, indexName);
         public static bool IsValidIndexValue(this byte[] bytesValue, string indexName, object value, string indexType ) => Validator.ValidateIndexValue(bytesValue, indexName, value, indexType);
         public static bool IsValidIndexName(this string name) => Validator.ValidateIndexName(name);
+        public static bool IsValidDBName(this string name) => Validator.ValidateDBName(name);
         public static bool IsValid(this CompareOperators compareOperator, string dataType) => Validator.ValidateCompareOperatorWithDataType(compareOperator, dataType);
         public static Func<byte[], int, int, bool> ToPredicate(this CompareOperators compareOperator, byte[] patternBytes, string type) => COMPARE_OPERATOR_PREDICATE[compareOperator](patternBytes.To(type, 0), patternBytes, type);
         public static Dictionary<CompareOperators,Func<dynamic, byte[], string, Func<byte[], int, int, bool>>> COMPARE_OPERATOR_PREDICATE = new Dictionary<CompareOperators, Func<dynamic, byte[], string, Func<byte[], int, int, bool>>>(){

@@ -6,8 +6,10 @@ using MO.MODB.Exceptions;
 namespace MO.MODB{
     public class Validator{
         static readonly char[] INDEX_NAME_ALLOWED_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-@".ToArray();
+        static readonly char[] DB_NAME_ALLOWED_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-@.".ToArray();
         static readonly int MAXIMUM_INDEX_VALUE_LENGTH = 256;
         static readonly int MAXIMUM_INDEX_NAME_LENGTH = 64;
+        static readonly int MAXIMUM_DB_NAME_LENGTH = 64;
         static readonly Dictionary<string, CompareOperators[]> DATA_TYPE_VALID_COMPARE_OPERATORS = new Dictionary<string, CompareOperators[]>(){
             {typeof(string).Name, new CompareOperators[]{CompareOperators.Equal, CompareOperators.NotEqual, CompareOperators.Contain, CompareOperators.NotContain}},
             {typeof(short).Name, Enum.GetValues(typeof(CompareOperators)).Cast<CompareOperators>().Where(c => !c.Equals(CompareOperators.Contain) || !c.Equals(CompareOperators.NotContain)).ToArray()},
@@ -28,6 +30,12 @@ namespace MO.MODB{
             name.Length > MAXIMUM_INDEX_NAME_LENGTH ||
             name.Any(x => !INDEX_NAME_ALLOWED_CHARS.Contains(x))
              ? throw new ArgumentException($"{name} is not a valid index name. Index names must match ^[a-zA-Z0-9_-@]+$ {MAXIMUM_INDEX_NAME_LENGTH} characters maximum length.", nameof(name))
+             : true;
+        public static bool ValidateDBName(string name) => 
+            string.IsNullOrEmpty(name) || 
+            name.Length > MAXIMUM_DB_NAME_LENGTH ||
+            name.Any(x => !DB_NAME_ALLOWED_CHARS.Contains(x))
+             ? throw new ArgumentException($"{name} is not a valid database name. Database names must match ^[a-zA-Z0-9_-@]+$ {MAXIMUM_DB_NAME_LENGTH} characters maximum length.", nameof(name))
              : true;
         public static bool ValidateCompareOperatorWithDataType(CompareOperators compareOperator, string dataType) =>
             !DATA_TYPE_VALID_COMPARE_OPERATORS[dataType].Any(c => c.Equals(compareOperator)) ? throw new CompareOperatorIndexTypeMissMatchException(compareOperator, dataType) : true;
