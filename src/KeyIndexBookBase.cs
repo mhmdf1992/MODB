@@ -161,7 +161,7 @@ namespace MO.MODB{
                 if(targetWR == null || !targetWR.Any())
                     return false;
                 foreach(var wr in _indexWRs){
-                    if(wr.Value.Any(predicate));
+                    if(wr.Value.Any(predicate))
                         return true;
                 }
                 return false;
