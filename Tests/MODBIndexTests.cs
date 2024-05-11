@@ -3,6 +3,102 @@ namespace MODB.Tests;
 public class MODBIndexTests
 {
     [Fact]
+    public void ContainCompareOperator_DBCountAllEqualDBCountContainValuePlusDBCountNotContainValue_Test()
+    {
+        var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "containcompare_test_db"));
+
+        var numberOfSets = 10;
+        for(int i =1; i <= numberOfSets; i ++){
+            db.Set(i.ToString(), $"{i}", i.ToString().GetType().Name);
+        }
+
+        var countAll = db.Count();
+        Assert.Equal(numberOfSets, countAll);
+
+        var countContain = db.Count("key", CompareOperators.Contain, "1");
+        Assert.Equal(2, countContain);
+
+        var countNotContain = db.Count("key", CompareOperators.NotContain, "1");
+        Assert.Equal(8, countNotContain);
+
+        Assert.Equal(countAll, countContain + countNotContain);
+
+        db.Clear();
+    }
+    
+    [Fact]
+    public void LessThanCompareOperator_DBCountAllEqualDBCountLessThanValuePlusDBCountGreaterThanOrEqualValue_Test()
+    {
+        var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "lessthancompare_test_db"));
+
+        var numberOfSets = 10;
+        for(int i =1; i <= numberOfSets; i ++){
+            db.Set(i, $"{i}", i.GetType().Name);
+        }
+
+        var countAll = db.Count();
+        Assert.Equal(numberOfSets, countAll);
+
+        var countLessThan = db.Count("key", CompareOperators.LessThan, 5);
+        Assert.Equal(4, countLessThan);
+
+        var countGreaterThanOrEqual = db.Count("key", CompareOperators.GreaterThanOrEqual, 5);
+        Assert.Equal(6, countGreaterThanOrEqual);
+
+        Assert.Equal(countAll, countLessThan + countGreaterThanOrEqual);
+
+        db.Clear();
+    }
+
+    [Fact]
+    public void GreaterThanCompareOperator_DBCountAllEqualDBCountGreaterThanValuePlusDBCountLessThanOrEqualValue_Test()
+    {
+        var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "greaterthancompare_test_db"));
+
+        var numberOfSets = 10;
+        for(int i =1; i <= numberOfSets; i ++){
+            db.Set(i, $"{i}", i.GetType().Name);
+        }
+
+        var countAll = db.Count();
+        Assert.Equal(numberOfSets, countAll);
+
+        var countGreaterThan = db.Count("key", CompareOperators.GreaterThan, 5);
+        Assert.Equal(5, countGreaterThan);
+
+        var countLessThanOrEqual = db.Count("key", CompareOperators.LessThanOrEqual, 5);
+        Assert.Equal(5, countLessThanOrEqual);
+
+        Assert.Equal(countAll, countGreaterThan + countLessThanOrEqual);
+
+        db.Clear();
+    }
+
+    [Fact]
+    public void EqualCompareOperator_DBCountAllEqualDBCountEqualValuePlusDBCountNotEqualValue_Test()
+    {
+        var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "equalcompare_test_db"));
+
+        var numberOfSets = 10;
+        for(int i =1; i <= numberOfSets; i ++){
+            db.Set(i, $"{i}", i.GetType().Name);
+        }
+
+        var countAll = db.Count();
+        Assert.Equal(numberOfSets, countAll);
+
+        var countEqual = db.Count("key", CompareOperators.Equal, 5);
+        Assert.Equal(1, countEqual);
+
+        var countNotEqual = db.Count("key", CompareOperators.NotEqual, 5);
+        Assert.Equal(9, countNotEqual);
+
+        Assert.Equal(countAll, countEqual + countNotEqual);
+
+        db.Clear();
+    }
+
+    [Fact]
     public void Filter_WhenCountEqualZeroFilterItemsEmpty_WhenCountGreaterThanZeroFilterItemsCountEqualNumberOfMatchesInSets_Test()
     {
         var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "all_test_db"));
