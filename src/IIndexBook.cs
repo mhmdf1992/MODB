@@ -9,7 +9,7 @@ namespace MO.MODB{
         long Size {get;}
         int KeyMaxBytes {get;}
         bool IsKeyIndex {get;}
-        IndexItemToRead FindFirst(object key);
+        IndexItemToRead FindFirst(object pattern, CompareOperators compareOperator);
         PagedList<ReadObject> Filter(object pattern, CompareOperators compareOperator, int page = 1, int pageSize = 10);
         int Count(object pattern, CompareOperators compareOperator);
         bool Any(object pattern, CompareOperators compareOperator);

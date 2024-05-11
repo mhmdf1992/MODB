@@ -8,7 +8,7 @@ namespace MO.MODB{
         PagedList<string> Filter(string indexName, CompareOperators compareOperator, object value, int page = 1, int pageSize = 10);
         int Count(string indexName, CompareOperators compareOperator, object value);
         bool Any(string indexName, CompareOperators compareOperator, object value);
-        string First(string indexName, object key);
+        string First(string indexName, CompareOperators compareOperator, object value);
         bool Any();
         int Count();
         bool Exists(object key);

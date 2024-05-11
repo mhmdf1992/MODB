@@ -151,7 +151,7 @@ namespace MO.MODB{
             return false;
         }
 
-        public IndexItemToRead FindFirst(byte[] key)
+        public IndexItemToRead FindFirst(Func<byte[], int, int, bool> predicate)
         {
             using var fstream = _indexFileWR.GetStreamForRead();
             long length = fstream.Length;
@@ -163,8 +163,8 @@ namespace MO.MODB{
             while(currentPosition < length){
                 var read = fstream.Read(buffer, 0, buffer.Length);
                 for(int i = 0; i < read; i += indexItemFullBytes){
-                    if(buffer.CompareBytes(key, i)){
-                        return new IndexItemToRead(_indexName, currentPosition + i, BitConverter.ToInt64(buffer, i + key.Length), BitConverter.ToInt32(buffer, i + key.Length + _numberOfPositionBytes));
+                    if(predicate(buffer, i, _numberOfKeyBytes)){
+                        return new IndexItemToRead(_indexName, currentPosition + i, BitConverter.ToInt64(buffer, i + _numberOfKeyBytes), BitConverter.ToInt32(buffer, i + _numberOfKeyBytes + _numberOfPositionBytes));
                     }
                 }
                 currentPosition += buffer.Length;

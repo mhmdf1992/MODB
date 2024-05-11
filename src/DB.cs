@@ -272,15 +272,18 @@ namespace MO.MODB{
             SetStream(key, value, typeof(string).Name);
         }
 
-        public string First(string indexName, object key)
+        public string First(string indexName, CompareOperators compareOperator, object value)
         {
             indexName.IsValidIndexName();
             var name = indexName.ToLower();
             if(!_indexBooks.ContainsKey(name))
                 throw new IndexNotFoundException(indexName);
             var indexBook = _indexBooks[name];
-            key.ToBytes(indexBook.IndexType).IsValidIndexValue(indexBook.IndexName, key, indexBook.IndexType);
-            var indexItem = indexBook.FindFirst(key) ?? throw new Exceptions.KeyNotFoundException(key);
+            value.ToBytes(indexBook.IndexType).IsValidIndexValue(indexBook.IndexName, value, indexBook.IndexType);
+            compareOperator.IsValid(indexBook.IndexType);
+            var indexItem = indexBook.FindFirst(value, compareOperator);
+            if(indexItem == default)
+                return null;
             return _dataWR.Get(indexItem.ValuePosition, indexItem.ValueLength);
         }
     }
