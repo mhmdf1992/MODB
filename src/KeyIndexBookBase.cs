@@ -160,7 +160,11 @@ namespace MO.MODB{
                 var targetWR = _indexWRs.Where(pair => pair.Key >= patternBytes.Length);
                 if(targetWR == null || !targetWR.Any())
                     return false;
-                return targetWR.Select(x => x.Value.Any(predicate)).Any(x => x);
+                foreach(var wr in _indexWRs){
+                    if(wr.Value.Any(predicate));
+                        return true;
+                }
+                return false;
             }
             if(!_indexWRs.ContainsKey(patternBytes.Length))
                 return false;
