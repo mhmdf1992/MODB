@@ -30,8 +30,9 @@ namespace MO.MODB{
                 return _dbs[name];
             if(generateIfNotExists){
                 _dbs.TryAdd(name, new DB(Path.Combine(_path, $"{name}.db")));
+                return _dbs[name];
             }
-            return _dbs[name];
+            throw new Exceptions.DBNotFoundException(name);
         }
     }
 }
