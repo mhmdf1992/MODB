@@ -7,6 +7,14 @@ namespace MO.MODB.Exceptions{
         }
     }
 
+    public class DBNotFoundException : System.Exception{
+        protected object _key;
+        public object Key => _key;
+        public DBNotFoundException(object key): base($"Database {key} does not exist"){
+            _key = key;
+        }
+    }
+
     public class UniqueKeyConstraintException : System.Exception{
         protected string _key;
         public string Key => _key;
