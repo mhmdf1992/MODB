@@ -29,13 +29,13 @@ namespace MO.MODB{
             string.IsNullOrEmpty(name) || 
             name.Length > MAXIMUM_INDEX_NAME_LENGTH ||
             name.Any(x => !INDEX_NAME_ALLOWED_CHARS.Contains(x))
-             ? throw new ArgumentException($"{name} is not a valid index name. Index names must match ^[a-zA-Z0-9_-@]+$ {MAXIMUM_INDEX_NAME_LENGTH} characters maximum length.", nameof(name))
+             ? throw new ArgumentException($"{name} is not a valid index name. Index names must match ^[a-zA-Z0-9@_-]+$ {MAXIMUM_INDEX_NAME_LENGTH} characters maximum length.", nameof(name))
              : true;
         public static bool ValidateDBName(string name) => 
             string.IsNullOrEmpty(name) || 
             name.Length > MAXIMUM_DB_NAME_LENGTH ||
             name.Any(x => !DB_NAME_ALLOWED_CHARS.Contains(x))
-             ? throw new ArgumentException($"{name} is not a valid database name. Database names must match ^[a-zA-Z0-9_-@]+$ {MAXIMUM_DB_NAME_LENGTH} characters maximum length.", nameof(name))
+             ? throw new ArgumentException($"{name} is not a valid database name. Database names must match ^[a-zA-Z0-9@._-]+$ {MAXIMUM_DB_NAME_LENGTH} characters maximum length.", nameof(name))
              : true;
         public static bool ValidateCompareOperatorWithDataType(CompareOperators compareOperator, string dataType) =>
             !DATA_TYPE_VALID_COMPARE_OPERATORS[dataType].Any(c => c.Equals(compareOperator)) ? throw new CompareOperatorIndexTypeMissMatchException(compareOperator, dataType) : true;
