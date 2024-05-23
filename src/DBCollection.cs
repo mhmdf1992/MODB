@@ -10,6 +10,8 @@ namespace MO.MODB{
         public DBCollection(string path){
             _dbs = new ConcurrentDictionary<string, IDB>();
             _path = path;
+            if(!Directory.Exists(path))
+                Directory.CreateDirectory(path);
             LoadDBs();
         }
         protected void LoadDBs(){
