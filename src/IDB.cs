@@ -5,6 +5,7 @@ using System.IO;
 namespace MO.MODB{
     public interface IDB{
         PagedList<string> All(int page = 1, int pageSize = 10);
+        PagedList<string> All(string indexName = null, CompareOperators? compareOperator = null, object value = null, int page = 1, int pageSize = 10);
         PagedList<string> Filter(string indexName, CompareOperators compareOperator, object value, int page = 1, int pageSize = 10);
         int Count(string indexName, CompareOperators compareOperator, object value);
         bool Any(string indexName, CompareOperators compareOperator, object value);

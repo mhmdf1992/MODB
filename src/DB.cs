@@ -221,6 +221,19 @@ namespace MO.MODB{
             return keyBook.All().ToPagedList(page, pageSize).Read(_dataWR.FlatFileWR);
         }
 
+        public PagedList<string> All(string indexName = null, CompareOperators? compareOperator = null, object value = null, int page = 1, int pageSize = 10){
+            if(indexName == null || compareOperator == null)
+                return All(page, pageSize);
+            indexName.IsValidIndexName();
+            var name = indexName.ToLower();
+            if(!_indexBooks.ContainsKey(name))
+                throw new IndexNotFoundException(indexName);
+            var indexBook = _indexBooks[name];
+            (value?.ToBytes(indexBook.IndexType) ?? new byte[0]).IsValidIndexValue(indexBook.IndexName, value, indexBook.IndexType);
+            compareOperator.Value.IsValid(indexBook.IndexType);
+            return indexBook.Filter(value, compareOperator.Value, page, pageSize).Read(_dataWR.FlatFileWR);
+        }
+
         public PagedList<string> Filter(string indexName, CompareOperators compareOperator, object value, int page = 1, int pageSize = 10){
             indexName.IsValidIndexName();
             var name = indexName.ToLower();
