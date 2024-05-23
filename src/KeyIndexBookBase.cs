@@ -124,6 +124,8 @@ namespace MO.MODB{
                 return Enumerable.Empty<ReadObject>().ToPagedList(page, pageSize);
             var patternBytes = pattern.ToBytes(_indexType);
             var predicate = compareOperator.ToPredicate(patternBytes, _indexType);
+            if(compareOperator.Equals(CompareOperators.NotContain) || compareOperator.Equals(CompareOperators.NotEqual))
+                return _indexWRs.Select(x => x.Value.Filter(predicate)).SelectMany(x => x).ToPagedList(page, pageSize);
             if(compareOperator.Equals(CompareOperators.Contain)){
                 var targetWR = _indexWRs.Where(pair => pair.Key >= patternBytes.Length);
                 if(targetWR == null || !targetWR.Any())
@@ -140,6 +142,8 @@ namespace MO.MODB{
                 return 0;
             var patternBytes = pattern.ToBytes(_indexType);
             var predicate = compareOperator.ToPredicate(patternBytes, _indexType);
+            if(compareOperator.Equals(CompareOperators.NotContain) || compareOperator.Equals(CompareOperators.NotEqual))
+                return _indexWRs.Select(x => x.Value.Count(predicate)).Sum(x => x);
             if(compareOperator.Equals(CompareOperators.Contain)){
                 var targetWR = _indexWRs.Where(pair => pair.Key >= patternBytes.Length);
                 if(targetWR == null || !targetWR.Any())
@@ -156,6 +160,8 @@ namespace MO.MODB{
                 return false;
             var patternBytes = pattern.ToBytes(_indexType);
             var predicate = compareOperator.ToPredicate(patternBytes, _indexType);
+            if(compareOperator.Equals(CompareOperators.NotContain) || compareOperator.Equals(CompareOperators.NotEqual))
+                return _indexWRs.Select(x => x.Value.Any(predicate)).Any(x => x);
             if(compareOperator.Equals(CompareOperators.Contain)){
                 var targetWR = _indexWRs.Where(pair => pair.Key >= patternBytes.Length);
                 if(targetWR == null || !targetWR.Any())

@@ -38,6 +38,16 @@ namespace MO.MODB{
             return true;
         }
 
+        public static bool CompareBytes(this byte[] haystak, byte[] needle, int offset, int length){
+            if(length != needle.Length)
+                return false;
+            for(int i = 0; i < needle.Length; i ++){
+                if(needle[i] != haystak[offset + i])
+                    return false;
+            }
+            return true;
+        }
+
         public static bool ContainBytes(this byte[] haystak, byte[] needle, int offset, int length){
             var size = offset + length;
             for(int i = offset; i < size; i ++ ){
@@ -65,8 +75,8 @@ namespace MO.MODB{
         public static bool IsValid(this CompareOperators compareOperator, string dataType) => Validator.ValidateCompareOperatorWithDataType(compareOperator, dataType);
         public static Func<byte[], int, int, bool> ToPredicate(this CompareOperators compareOperator, byte[] patternBytes, string type) => COMPARE_OPERATOR_PREDICATE[compareOperator](patternBytes.To(type, 0), patternBytes, type);
         public static Dictionary<CompareOperators,Func<dynamic, byte[], string, Func<byte[], int, int, bool>>> COMPARE_OPERATOR_PREDICATE = new Dictionary<CompareOperators, Func<dynamic, byte[], string, Func<byte[], int, int, bool>>>(){
-            { CompareOperators.Equal, (pattern, patternBytes, type) => (haystack, offset, length) => haystack.CompareBytes(patternBytes, offset)},
-            { CompareOperators.NotEqual, (pattern, patternBytes, type) => (haystack, offset, length) => !haystack.CompareBytes(patternBytes, offset)},
+            { CompareOperators.Equal, (pattern, patternBytes, type) => (haystack, offset, length) => haystack.CompareBytes(patternBytes, offset, length)},
+            { CompareOperators.NotEqual, (pattern, patternBytes, type) => (haystack, offset, length) => !haystack.CompareBytes(patternBytes, offset, length)},
             { CompareOperators.Contain, (pattern, patternBytes, type) => (haystack, offset, length) => haystack.ContainBytes(patternBytes, offset, length)},
             { CompareOperators.NotContain, (pattern, patternBytes, type) => (haystack, offset, length) => !haystack.ContainBytes(patternBytes, offset, length)},
             { CompareOperators.GreaterThan, (pattern, patternBytes, type) => (haystack, offset, length) => haystack.To(type, offset) > pattern},
