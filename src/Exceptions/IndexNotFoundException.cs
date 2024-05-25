@@ -1,7 +1,7 @@
 namespace MO.MODB.Exceptions{
-    public class IndexNotFoundException : System.Exception{
+    public class IndexNotFoundException : System.ArgumentException{
         string _name;
-        public IndexNotFoundException(string name): base($"Index {name} does not exist"){
+        public IndexNotFoundException(string name): base(message: $"Index {name} does not exist", paramName: "Index"){
             _name = name;
         }
     }
