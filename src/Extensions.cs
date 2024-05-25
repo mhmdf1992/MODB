@@ -63,7 +63,7 @@ namespace MO.MODB{
             try{
                 return Converter.ToBytes[dataType](obj);
             }catch{
-                throw new KeyIndexTypeMissMatchException(obj.GetType().Name, dataType);
+                throw new KeyIndexTypeMissMatchException(obj, obj.GetType().Name, dataType);
             }
         } 
         public static dynamic To(this byte[] bytes, string dataType, int offset) => Converter.To[dataType](bytes, offset);
