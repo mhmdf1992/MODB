@@ -126,24 +126,6 @@ public class MODBIndexTests
     }
 
     [Fact]
-    public void First_WhenExistsEqualFalseThenFirstRetrunNullElseReturnSetValue_Test()
-    {
-        var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "first_test_db"));
-        var key = "testkey";
-        var value = "testvalue";
-        db.Set("blablalablaba", "testvalue"); db.Clear(); // initialize key index
-
-        Assert.False(db.Exists(key));
-        Assert.Null(db.First("key", CompareOperators.Equal, key));
-
-        db.Set(key, value);
-        Assert.True(db.Exists(key));
-        Assert.Equal(value, db.First("key", CompareOperators.Equal, key));
-
-        db.Clear();
-    }
-
-    [Fact]
     public void CountInIndex_IfNotKeySetThenCountEqualZeroElseNumberOfSets_Test()
     {
         var db = new DB(Path.Combine(Directory.GetCurrentDirectory(), "countinindex_test_db"));
@@ -347,7 +329,7 @@ public class MODBIndexTests
         db.Set(11, "testvalue", typeof(short).Name, new InsertIndexItem(name: "index1", value: key, type: typeof(short).Name));
         Assert.True(db.Any("index1", CompareOperators.Equal, key));
         Assert.True(db.Any("index1", CompareOperators.Equal, Convert.ToInt16(key)));
-        Assert.Equal(db.First("index1", CompareOperators.Equal, key), db.First("index1", CompareOperators.Equal, Convert.ToInt16(key)));
+        Assert.Equal(db.Filter("index1", CompareOperators.Equal, key).Items.First(), db.Filter("index1", CompareOperators.Equal, Convert.ToInt16(key)).Items.First());
 
         db.Clear();
     }
@@ -373,7 +355,7 @@ public class MODBIndexTests
         db.Set(11, "testvalue", typeof(int).Name, new InsertIndexItem("index1", key, typeof(int).Name));
         Assert.True(db.Any("index1", CompareOperators.Equal, key));
         Assert.True(db.Any("index1", CompareOperators.Equal, Convert.ToInt32(key)));
-        Assert.Equal(db.First("index1", CompareOperators.Equal, key), db.First("index1", CompareOperators.Equal, Convert.ToInt32(key)));
+        Assert.Equal(db.Filter("index1", CompareOperators.Equal, key).Items.First(), db.Filter("index1", CompareOperators.Equal, Convert.ToInt32(key)).Items.First());
 
         db.Clear();
     }
@@ -398,7 +380,7 @@ public class MODBIndexTests
         db.Set(11, "testvalue", typeof(long).Name, new InsertIndexItem("index1", key, typeof(long).Name));
         Assert.True(db.Any("index1", CompareOperators.Equal, key));
         Assert.True(db.Any("index1", CompareOperators.Equal, Convert.ToInt64(key)));
-        Assert.Equal(db.First("index1", CompareOperators.Equal, key), db.First("index1", CompareOperators.Equal, Convert.ToInt64(key)));
+        Assert.Equal(db.Filter("index1", CompareOperators.Equal, key).Items.First(), db.Filter("index1", CompareOperators.Equal, Convert.ToInt64(key)).Items.First());
 
         db.Clear();
     }
@@ -423,7 +405,7 @@ public class MODBIndexTests
         db.Set(11.0, "testvalue", typeof(double).Name, new InsertIndexItem("index1", key, typeof(double).Name));
         Assert.True(db.Any("index1", CompareOperators.Equal, key));
         Assert.True(db.Any("index1", CompareOperators.Equal, Convert.ToDouble(key)));
-        Assert.Equal(db.First("index1", CompareOperators.Equal, key), db.First("index1", CompareOperators.Equal, Convert.ToDouble(key)));
+        Assert.Equal(db.Filter("index1", CompareOperators.Equal, key).Items.First(), db.Filter("index1", CompareOperators.Equal, Convert.ToDouble(key)).Items.First());
 
         db.Clear();
     }

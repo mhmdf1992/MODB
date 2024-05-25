@@ -9,23 +9,6 @@ public class MODBPerformanceTests
     }
 
     [Theory]
-    [InlineData(1)]
-    [InlineData(10)]
-    [InlineData(100)]
-    [InlineData(1000)]
-    [InlineData(10000)]
-    [InlineData(100000)]
-    [InlineData(1000000)]
-    [InlineData(10000000)]
-    [InlineData(99000000)]
-    [InlineData(100000000)]
-    public void First_ValueByIndexValueFrom100MillionRecordInLessThan1000msTest(int value)
-    {
-        var res = StopWatch( ()=> _db.First("key", CompareOperators.Equal, value));
-        Assert.True(res.ProcessingTime < 1000, $"Value {value} found\nResult: {res.Result}\nElapsed Time {res.ProcessingTime}ms");
-    }
-
-    [Theory]
     [InlineData(99999999)]
     [InlineData(98987789)]
     [InlineData(84481811)]
