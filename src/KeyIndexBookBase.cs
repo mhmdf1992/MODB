@@ -190,28 +190,5 @@ namespace MO.MODB{
             }
             return default;
         }
-
-        public IndexItemToRead FindFirst(object pattern, CompareOperators compareOperator)
-        {
-            if(!_indexWRs.Any())
-                return default;
-            var patternBytes = pattern.ToBytes(_indexType);
-            var predicate = compareOperator.ToPredicate(patternBytes, _indexType);
-            if(compareOperator.Equals(CompareOperators.Contain)){
-                var targetWR = _indexWRs.Where(pair => pair.Key >= patternBytes.Length);
-                if(targetWR == null || !targetWR.Any())
-                    return default;
-                foreach(var wr in _indexWRs){
-                    var indexItem = wr.Value.FindFirst(predicate);
-                    if(indexItem == default)
-                        continue;
-                    return indexItem;
-                }
-                return default;
-            }
-            if(!_indexWRs.ContainsKey(patternBytes.Length))
-                return default;
-            return _indexWRs[patternBytes.Length].FindFirst(predicate);
-        }
     }
 }

@@ -12,8 +12,9 @@ namespace MO.MODB{
         protected string _path;
         protected IDataWR _dataWR;
         protected ConcurrentDictionary<string, IIndexBook> _indexBooks;
-        protected string _name; public string Name => _name;
+        protected string _name; public string Name => Path.GetFileNameWithoutExtension(_name);
         public long Size => _dataWR.Size + _indexBooks.Values.Sum(x => x.Size);
+        public IEnumerable<Index> Indexes => _indexBooks.Values.Select(x => new Index(){ Name = x.IndexName, Type = x.IndexType});
         public DB(string path){
             _path = path;
             _name = Path.GetFileName(_path);
@@ -45,7 +46,7 @@ namespace MO.MODB{
                 return;
             var length = _dataWR.Encoding.GetByteCount(value);
             keyIndexBook.Add(key, position, length);
-            if(index == null && !index.Any())
+            if(index == null || !index.Any())
                 return;
             foreach(var i in index){
                 i.IndexName.IsValidIndexName();
@@ -67,7 +68,7 @@ namespace MO.MODB{
             if(position == -1)
                 return;
             keyIndexBook.Add(key, position, (int)length);
-            if(index == null && !index.Any())
+            if(index == null || !index.Any())
                 return;
             foreach(var i in index){
                 i.IndexName.IsValidIndexName();
@@ -194,7 +195,7 @@ namespace MO.MODB{
                         obj => obj.indexItemBytes,
                         (key, grp) => new KeyValuePair<int,byte[][]>(key, grp.ToArray())).ToDictionary(x => x.Key, x => x.Value);
             keyBook.InsertHash(keyIndexHash);
-            if(index == null && !index.Any())
+            if(index == null || !index.Any())
                 return;
             foreach(var i in index){
                 if(i.IndexType == typeof(string).Name)
@@ -221,7 +222,7 @@ namespace MO.MODB{
             return keyBook.All().ToPagedList(page, pageSize).Read(_dataWR.FlatFileWR);
         }
 
-        public PagedList<string> All(string indexName = null, CompareOperators? compareOperator = null, object value = null, int page = 1, int pageSize = 10){
+        public PagedList<string> Filter(string indexName = null, CompareOperators? compareOperator = null, object value = null, int page = 1, int pageSize = 10){
             if(indexName == null || compareOperator == null)
                 return All(page, pageSize);
             indexName.IsValidIndexName();
@@ -234,37 +235,30 @@ namespace MO.MODB{
             return indexBook.Filter(value, compareOperator.Value, page, pageSize).Read(_dataWR.FlatFileWR);
         }
 
-        public PagedList<string> Filter(string indexName, CompareOperators compareOperator, object value, int page = 1, int pageSize = 10){
+        public int Count(string indexName = null, CompareOperators? compareOperator = null, object value = null){
+            if(indexName == null || compareOperator == null)
+                return Count();
             indexName.IsValidIndexName();
             var name = indexName.ToLower();
             if(!_indexBooks.ContainsKey(name))
                 throw new IndexNotFoundException(indexName);
             var indexBook = _indexBooks[name];
             value.ToBytes(indexBook.IndexType).IsValidIndexValue(indexBook.IndexName, value, indexBook.IndexType);
-            compareOperator.IsValid(indexBook.IndexType);
-            return indexBook.Filter(value, compareOperator, page, pageSize).Read(_dataWR.FlatFileWR);
+            compareOperator.Value.IsValid(indexBook.IndexType);
+            return indexBook.Count(value, compareOperator.Value);
         }
 
-        public int Count(string indexName, CompareOperators compareOperator, object value){
+        public bool Any(string indexName = null, CompareOperators? compareOperator = null, object value = null){
+            if(indexName == null || compareOperator == null)
+                return Any();
             indexName.IsValidIndexName();
             var name = indexName.ToLower();
             if(!_indexBooks.ContainsKey(name))
                 throw new IndexNotFoundException(indexName);
             var indexBook = _indexBooks[name];
             value.ToBytes(indexBook.IndexType).IsValidIndexValue(indexBook.IndexName, value, indexBook.IndexType);
-            compareOperator.IsValid(indexBook.IndexType);
-            return indexBook.Count(value, compareOperator);
-        }
-
-        public bool Any(string indexName, CompareOperators compareOperator, object value){
-            indexName.IsValidIndexName();
-            var name = indexName.ToLower();
-            if(!_indexBooks.ContainsKey(name))
-                throw new IndexNotFoundException(indexName);
-            var indexBook = _indexBooks[name];
-            value.ToBytes(indexBook.IndexType).IsValidIndexValue(indexBook.IndexName, value, indexBook.IndexType);
-            compareOperator.IsValid(indexBook.IndexType);
-            return indexBook.Any(value, compareOperator);
+            compareOperator.Value.IsValid(indexBook.IndexType);
+            return indexBook.Any(value, compareOperator.Value);
         }
 
         public void Clear()
@@ -285,19 +279,9 @@ namespace MO.MODB{
             SetStream(key, value, typeof(string).Name);
         }
 
-        public string First(string indexName, CompareOperators compareOperator, object value)
+        public void Delete()
         {
-            indexName.IsValidIndexName();
-            var name = indexName.ToLower();
-            if(!_indexBooks.ContainsKey(name))
-                throw new IndexNotFoundException(indexName);
-            var indexBook = _indexBooks[name];
-            value.ToBytes(indexBook.IndexType).IsValidIndexValue(indexBook.IndexName, value, indexBook.IndexType);
-            compareOperator.IsValid(indexBook.IndexType);
-            var indexItem = indexBook.FindFirst(value, compareOperator);
-            if(indexItem == default)
-                return null;
-            return _dataWR.Get(indexItem.ValuePosition, indexItem.ValueLength);
+            Directory.Delete(_path, true);
         }
     }
 }

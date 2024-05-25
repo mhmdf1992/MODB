@@ -12,7 +12,6 @@ namespace MO.MODB{
         void AddRange(byte[][] range);
         void Clear();
         int CountDeleted();
-        IndexItemToRead FindFirst(Func<byte[], int, int, bool> predicate);
         long Size {get;}
     }
 }
